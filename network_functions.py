@@ -6,7 +6,6 @@ import datetime
 from io import StringIO
 from random import choices
 import numpy as np
-import pandas
 import pandas as pd
 
 # Indices from simulated_data matrix
@@ -84,7 +83,7 @@ def create_farm_dict(
 def create_tour_df(
         start_date: datetime,
         end_date: datetime
-) -> pandas.DataFrame:
+) -> pd.DataFrame:
     """ Creates the tour data frame.
 
     Only tours between start_date and end_date.
@@ -127,7 +126,7 @@ def create_geo_arr():
 
 
 def set_index_case(
-        farm_list: list) -> int:
+        farm_list: list) -> tuple[int, int]:
     """ Pick 1 pig on random farm to be infected
 
     :return: Index of farm index

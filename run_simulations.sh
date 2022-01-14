@@ -1,25 +1,23 @@
 #!/bin/bash
 
-prj_dir=/storage/homefs/km21a901/NetworkMaterial
-script_dir=$prj_dir/SwineNet-model
-intBeg="2014.01"
-intEnd="2014.03"
+prj_dir=/storage/homefs/km21a901/NetworkMaterial/SwineNet-model
+script_dir=$prj_dir/code
+output_dir=$prj_dir/output
+start_date="2014-01-01"
+end_date="2014-03-30"
+num_runs=100
 
-module load R/4.0.0-foss-2020a
+module load Python/3.9.5-GCCcore-10.3.0
 
-num_simulations=(0:100)
-
-for run in ${num_simulations[@]}; do
-  job_file="${run}.job"
+for run_id in 1..$num_runs; do
+  job_file="${run_id}.job"
 
     echo "#!/bin/bash
-#SBATCH --job-name=network-simulation-${run}
+#SBATCH --job-name=network-simulation-${run_id}
 #SBATCH --time=0:30:00
-#SBATCH --cpus-per-task=5
+#SBATCH --cpus-per-task=1
 #SBATCH --output=ojob_%j.txt
 #SBATCH --error=ejob_%j.txt
-Rscript --vanilla $script_dir/cli.py $intBeg $intEnd" > $job_file
+python $script_dir/cli.py --start_date=$start_date --end_date=$end_date --curr_run=$run_id --output_dir=$output_dir" > $job_file
     sbatch $job_file
-
-  done
 done

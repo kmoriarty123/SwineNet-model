@@ -33,5 +33,5 @@
   2. update_spread_btwn_farms
 
 ### Example Execution
-py cli_single_run.py --start_date=2014-01-01 --end_date=2014-01-03 --index_case_tvd_id=1095739
+py cli_single_run.py --start_date=2014-01-01 --end_date=2014-01-03 --index_case_tvd_id=[tvd_id]
 
