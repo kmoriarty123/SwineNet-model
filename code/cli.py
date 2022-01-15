@@ -31,7 +31,7 @@ def main():
     start_date = args.start_date
     end_date = args.end_date
     output_dir = args.output_dir
-    curr_run = args.num_run
+    curr_run = args.curr_run
     # column headings for result output
     column_names_1 = ['date', 'farm_idx', 'susceptible', 'exposed', 'infected', 'deceased']
     column_names_2 = ['date', 'contact_type', 'num_inf_pigs']
@@ -101,10 +101,10 @@ def main():
     # all_runs_infected_pig.append(results_by_contact_grp)
 
     # Save data to file
-    np.savetxt(os.path.join(output_dir, "results_by_contact_grp_", curr_run, ".csv"),
-               results_by_contact_grp, delimiter=", ", fmt='%s,%i,%i,%i,%i,%i')
-    np.savetxt(os.path.join(output_dir, "results_by_compart_", curr_run, ".csv"),
-               results_by_compart, delimiter=", ", fmt='%s,%s,%i,%i')
+    np.savetxt("../output/results_by_contact_grp_" + str(curr_run) + ".csv",
+               results_by_contact_grp, delimiter=", ", fmt='%s,%s,%i,%i')
+    np.savetxt("../output/results_by_compart_"+ str(curr_run) + ".csv",
+               results_by_compart, delimiter=", ", fmt='%s,%i,%i,%i,%i,%i')
 
 
 if __name__ == '__main__':

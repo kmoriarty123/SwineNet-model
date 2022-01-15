@@ -1,4 +1,5 @@
 # SwineNet Simple Network Simulation Model
+#### last update: 05.01.2022
 
 ### Data
 - Farms

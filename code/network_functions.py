@@ -42,7 +42,7 @@ def create_farm_dict(
     # Don't need start_date: datetime, end_date: datetime parameters since we take all farms (geographic)
 
     # From file, import farms from agis_data and create dict
-    # with open('data/agis_data_lim.csv') as f:
+    # with open('../data/agis_data_lim.csv') as f:
     # print("s{}s".format(start_year))
 
     # skip header line
@@ -68,7 +68,7 @@ def create_farm_dict(
     # Invert the values so now tvd_nr are the keys and index is the value
     # farm_key = {int(val): key for key, val in farm_key_df.items()}
 
-    farm_df = pd.read_csv('data/agis_data_lim.csv', encoding='latin-1')
+    farm_df = pd.read_csv('../data/agis_data_lim.csv', encoding='latin-1')
     farm_df = farm_df[(farm_df['year'] <= end_year) & (farm_df['year'] >= start_year)]
     farm_list = farm_df.values.tolist()
 
@@ -90,7 +90,7 @@ def create_tour_df(
     """
 
     # From file, import farms from agis_data and create dict
-    with open('data/tour_network.csv') as f:
+    with open('../data/tour_network.csv') as f:
         # skip header line
         header = next(f).strip()
 
@@ -114,7 +114,7 @@ def create_geo_arr():
     :return: np.array
     """
     # Read data from file
-    geo_net_all = pd.read_csv('data/geo_network.csv')
+    geo_net_all = pd.read_csv('../data/geo_network.csv')
 
     # Limit geo net for <2km
     geo_net = geo_net_all[geo_net_all['dist'] <= 2]
