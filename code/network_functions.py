@@ -67,14 +67,16 @@ def create_farm_dict(
 
     # Invert the values so now tvd_nr are the keys and index is the value
     # farm_key = {int(val): key for key, val in farm_key_df.items()}
-
-    farm_df = pd.read_csv('../data/agis_data_lim.csv', encoding='latin-1')
+    print("Inside create_farm_dict")
+    farm_df = pd.read_csv('data/agis_data_lim.csv', encoding='latin-1')
     farm_df = farm_df[(farm_df['year'] <= end_year) & (farm_df['year'] >= start_year)]
     farm_list = farm_df.values.tolist()
 
     farm_dict = {}
     for idx, farm_id in enumerate(farm_list):
         farm_dict[farm_id[0]] = idx
+
+    print("Inside create_farm_dict, after farm_dict creation")
 
     # Return Dictionary
     return farm_dict, farm_list
@@ -90,7 +92,7 @@ def create_tour_df(
     """
 
     # From file, import farms from agis_data and create dict
-    with open('../data/tour_network.csv') as f:
+    with open('data/tour_network.csv') as f:
         # skip header line
         header = next(f).strip()
 
@@ -104,6 +106,10 @@ def create_tour_df(
 
         # Convert event_date to datetime object
         tour_df['event_date'] = pd.to_datetime(tour_df['event_date']).dt.date
+        print("after", tour_df)
+        # Convert tvds to ints
+        tour_df.iloc[:, 0:1] = tour_df.iloc[:, 0:1].values.astype(int)
+        print("before", tour_df)
 
     # Return dataframe
     return tour_df
@@ -114,7 +120,7 @@ def create_geo_arr():
     :return: np.array
     """
     # Read data from file
-    geo_net_all = pd.read_csv('../data/geo_network.csv')
+    geo_net_all = pd.read_csv('data/geo_network.csv')
 
     # Limit geo net for <2km
     geo_net = geo_net_all[geo_net_all['dist'] <= 2]

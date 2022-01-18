@@ -36,6 +36,8 @@ def main():
     column_names_1 = ['date', 'farm_idx', 'susceptible', 'exposed', 'infected', 'deceased']
     column_names_2 = ['date', 'contact_type', 'num_inf_pigs']
 
+    print("Beginning main() function")
+
     # Create farm index dictionary
     farm_dict, farm_list = fun.create_farm_dict(start_date.year, end_date.year)
 
