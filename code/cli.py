@@ -36,8 +36,6 @@ def main():
     column_names_1 = ['date', 'farm_idx', 'susceptible', 'exposed', 'infected', 'deceased']
     column_names_2 = ['date', 'contact_type', 'num_inf_pigs']
 
-    print("Beginning main() function")
-
     # Create farm index dictionary
     farm_dict, farm_list = fun.create_farm_dict(start_date.year, end_date.year)
 
@@ -45,7 +43,7 @@ def main():
     infected_farm_list = []
     infected_pig_list = []
 
-    print(f"run: {curr_run}")
+    print(f"run: {curr_run}", flush=True)
 
     # Generate random index farm
     index_case, inf_tvd = fun.set_index_case(farm_list)

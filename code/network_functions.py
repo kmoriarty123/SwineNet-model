@@ -16,7 +16,7 @@ SU, EX, INF, DE = 0, 1, 2, 3
 # Disease causing death rate: DEL
 BET, SIG, DEL = 5, 0.2, 0.1
 
-# Other cantact transmission rates
+# Other contact transmission rates
 INDIRECT_TRANS_RATE = 0.01
 PIG_PIG_TRANS_RATE = 0.1
 FOMITE_TRANS_RATE = 0.05
@@ -67,16 +67,13 @@ def create_farm_dict(
 
     # Invert the values so now tvd_nr are the keys and index is the value
     # farm_key = {int(val): key for key, val in farm_key_df.items()}
-    print("Inside create_farm_dict")
-    farm_df = pd.read_csv('data/agis_data_lim.csv', encoding='latin-1')
+    farm_df = pd.read_csv('../data/agis_data_lim.csv', encoding='latin-1')
     farm_df = farm_df[(farm_df['year'] <= end_year) & (farm_df['year'] >= start_year)]
     farm_list = farm_df.values.tolist()
 
     farm_dict = {}
     for idx, farm_id in enumerate(farm_list):
         farm_dict[farm_id[0]] = idx
-
-    print("Inside create_farm_dict, after farm_dict creation")
 
     # Return Dictionary
     return farm_dict, farm_list
@@ -92,7 +89,7 @@ def create_tour_df(
     """
 
     # From file, import farms from agis_data and create dict
-    with open('data/tour_network.csv') as f:
+    with open('../data/tour_network.csv') as f:
         # skip header line
         header = next(f).strip()
 
@@ -106,10 +103,9 @@ def create_tour_df(
 
         # Convert event_date to datetime object
         tour_df['event_date'] = pd.to_datetime(tour_df['event_date']).dt.date
-        print("after", tour_df)
+
         # Convert tvds to ints
         tour_df.iloc[:, 0:1] = tour_df.iloc[:, 0:1].values.astype(int)
-        print("before", tour_df)
 
     # Return dataframe
     return tour_df
@@ -120,7 +116,7 @@ def create_geo_arr():
     :return: np.array
     """
     # Read data from file
-    geo_net_all = pd.read_csv('data/geo_network.csv')
+    geo_net_all = pd.read_csv('../data/geo_network.csv')
 
     # Limit geo net for <2km
     geo_net = geo_net_all[geo_net_all['dist'] <= 2]
@@ -150,7 +146,7 @@ def set_index_case(
     # Pick one random index from 0 to 1 less than total farms
     index_farm = choices(farm_indices, k=1)[0]  # returns a list so need the first element
 
-    print(f"info re index case: {farm_list[index_farm]}")
+    print(f"info re index case: {farm_list[index_farm]}", flush=True)
     inf_tvd = farm_list[index_farm][0]
 
     return index_farm, inf_tvd
@@ -176,7 +172,7 @@ def create_sim_data(
     # Replace all nans with 0.0
     sim_data = np.nan_to_num(sim_data)
 
-    print(f"index case: {index_case} and num pigs: {sim_data[index_case, SU]} from w/in create")
+    #print(f"index case: {index_case} and num pigs: {sim_data[index_case, SU]} from w/in create", flush=True)
     return sim_data
 
 
@@ -259,14 +255,14 @@ def update_spread_between_farms(farm_dict: dict,
             # Grab row where infected farm transport occurs
             # inf_farm_tour = curr_tours[np.isin(infected_tvd, curr_tours[:, 0])]
             inf_farm_tour = curr_tours[np.where(curr_tours[:, 0] == infected_tvd)[0]][0]
-            print(f"Found a tour of an infected farm! {inf_farm_tour}")
+            print(f"Found a tour of an infected farm! {inf_farm_tour}", flush=True)
 
             # Get index of destination farm
             dest_tvd_id = farm_dict[inf_farm_tour[1]]
 
             # Calculate the number of infected pigs infected sent on the tour
             tran_inf_pigs = round(inf_farm_tour[3] * sim_data[farm_idx, INF] / N, 0)
-            print("trans inf pigs", tran_inf_pigs)
+            print("trans inf pigs", tran_inf_pigs, flush=True)
             infected_pig_list.append([curr_date, 'd', tran_inf_pigs])
 
             # Update infected pig count for infected farm and destination farm
@@ -294,7 +290,7 @@ def update_spread_between_farms(farm_dict: dict,
 
                         # Calculate the number of pigs indirectly infected
                         ind_inf_pigs = round(tran_inf_pigs / inf_farm_tour[3] * INDIRECT_TRANS_RATE * sum_sus_pigs_i, 0)
-                        print("ind inf pigs: ", ind_inf_pigs)
+                        print("ind inf pigs: ", ind_inf_pigs, flush=True)
                         infected_pig_list.append([curr_date, 'i', ind_inf_pigs])
 
                         # Update infected pig count for the indirect destination farm
@@ -309,14 +305,14 @@ def update_spread_between_farms(farm_dict: dict,
                                               (tour_net['tvd_dest'] == dest_contact_tvd) &
                                               (tour_net['tvd_source'] != infected_tvd)]
 
-                        print(pig_to_pig)
+                        #print(pig_to_pig, flush=True)
                         # sum all the susceptible pigs
                         sum_sus_pigs_p = pig_to_pig['n_pigs'].sum()
 
                         # Calculate the number of pigs infected
                         pig_inf_pigs = round((tran_inf_pigs / inf_farm_tour[3]) * PIG_PIG_TRANS_RATE *
                                              sum_sus_pigs_p, 0)
-                        print("p2p: ", pig_inf_pigs)
+                        print("p2p: ", pig_inf_pigs, flush=True)
                         infected_pig_list.append([curr_date, 'p', pig_inf_pigs])
 
                         # Update infected pig count for the indirect destination farm
@@ -336,7 +332,7 @@ def update_spread_between_farms(farm_dict: dict,
 
                         # Calculate the number of pigs infected by fomites (uncleaned truck)
                         fom_inf_pigs = round(tran_inf_pigs / inf_farm_tour[3] * FOMITE_TRANS_RATE * sum_sus_pigs_t, 0)
-                        print("formites: ", fom_inf_pigs)
+                        print("formites: ", fom_inf_pigs, flush=True)
                         infected_pig_list.append([curr_date, 't', fom_inf_pigs])
                         # Update infected pig count for the indirect destination farm
                         sim_data[dest_contact_tvd_id, INF] = sim_data[dest_contact_tvd_id, INF] + fom_inf_pigs
