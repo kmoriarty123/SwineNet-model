@@ -11,11 +11,13 @@ import pandas as pd
 # Indices from simulated_data matrix
 SU, EX, INF, DE = 0, 1, 2, 3
 
+# Within Farm Spread
 # Contact transmission rate: BET,
 # Exposed to infected rate: SIG
 # Disease causing death rate: DEL
 BET, SIG, DEL = 5, 0.2, 0.1
 
+# Between Farm Spread
 # Other contact transmission rates
 INDIRECT_TRANS_RATE = 0.01
 PIG_PIG_TRANS_RATE = 0.1
@@ -30,6 +32,7 @@ GEO_TRANS_RATE = 0.01
 # be ? (Need to get details from Antoine)
 # SIG: Incubation period is 5 - 15 days: https://www.daera-ni.gov.uk/articles/african-swine-fever
 # DEL: death rate is 4-9 days after exposure? I set to 10. https://www.nature.com/articles/s41598-020-62736-y
+# Francesco's article: https://www.authorea.com/doi/full/10.22541/au.164271398.86217172/v1 (table 3)
 
 def create_farm_dict(
         start_year: int,
@@ -64,7 +67,6 @@ def create_farm_dict(
 
     # Create farm_key dictionary
     # farm_key_df = farm_df.iloc[:,0:1].to_dict()
-
     # Invert the values so now tvd_nr are the keys and index is the value
     # farm_key = {int(val): key for key, val in farm_key_df.items()}
     farm_df = pd.read_csv('../data/agis_data_lim.csv', encoding='latin-1')
@@ -179,7 +181,8 @@ def create_sim_data(
 def update_spread_within_farms(
         sim_data: np.array,
         infected_farm_list: list,
-        curr_date: datetime) -> np.array:
+        curr_date: datetime,
+        infected_pig_list: list) -> np.array:
 
     # Select all entries with at least 1 infected pig
     for idx in np.arange(0, sim_data.shape[0]):
@@ -187,12 +190,15 @@ def update_spread_within_farms(
 
             infected_farm_list.append([curr_date, idx, sim_data[idx, SU], sim_data[idx, EX], sim_data[idx, INF],
                                        sim_data[idx, DE]])
-            new_sus, new_exp, new_inf, new_dec = \
+            new_sus, new_exp, new_inf, new_dec, e_to_i = \
                 run_farm_spread(sim_data[idx, SU], sim_data[idx, EX], sim_data[idx, INF], sim_data[idx, DE])
             sim_data[idx, SU] = new_sus
             sim_data[idx, EX] = new_exp
             sim_data[idx, INF] = new_inf
             sim_data[idx, DE] = new_dec
+
+            # To track number of S to E on a daily basis
+            infected_pig_list.append([curr_date, 'f', e_to_i])
 
     return sim_data, infected_farm_list
 
@@ -220,11 +226,12 @@ def run_farm_spread(sus, exp, inf, dec):
         E = E0 - SIG * E0
 
     # TODO handle the case of 0 exposed pigs
+    E_to_I = SIG * E0 - DEL * I0
 
-    I = I0 + SIG * E0 - DEL * I0
+    I = I0 + E_to_I
     D = D0 + DEL * I0
 
-    return S, E, I, D
+    return S, E, I, D, E_to_I
 
 
 def update_spread_between_farms(farm_dict: dict,
@@ -260,7 +267,7 @@ def update_spread_between_farms(farm_dict: dict,
             # Get index of destination farm
             dest_tvd_id = farm_dict[inf_farm_tour[1]]
 
-            # Calculate the number of infected pigs infected sent on the tour
+            # Calculate the number of infected pigs sent on the tour
             tran_inf_pigs = round(inf_farm_tour[3] * sim_data[farm_idx, INF] / N, 0)
             print("trans inf pigs", tran_inf_pigs, flush=True)
             infected_pig_list.append([curr_date, 'd', tran_inf_pigs])
