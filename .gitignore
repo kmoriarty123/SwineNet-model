@@ -3,3 +3,4 @@ __pycache__/*
 data/*
 code/__pycache__/*
 output/*
+old_code/*

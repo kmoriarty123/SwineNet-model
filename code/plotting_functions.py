@@ -5,7 +5,7 @@ import datetime
 
 # parameters to change for reading and writing files
 num_runs = 1000
-start_date = datetime.date.fromisoformat('2014-01-01')
+start_date = datetime.date.fromisoformat('2014_1_1')
 
 # column headings
 columns1 = ['date', 'farm_count', 'exposed', 'infected', 'deceased', 'num_run']
@@ -92,8 +92,8 @@ fig_max_farm = px.histogram(max_farm_count, x='date',
                             marginal="rug",
                             template="plotly_white",
                             nbins=12, )
-# xbins=dict(start='2014-01-01', end='2014-03-30',size='D7'))
-fig_max_farm.update_xaxes(range=['2014-01-01', '2014-03-30'])
+# xbins=dict(start='2014_1_1', end='2014-03-30',size='D7'))
+fig_max_farm.update_xaxes(range=['2014_1_1', '2014-03-30'])
 fig_max_farm.show()
 
 fig_max_farm2 = px.histogram(max_farm_count,

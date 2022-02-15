@@ -1,9 +1,7 @@
 """Command Line Processing File.
 
 Interprets the arguments from the commandline,
-creates instance of TranscriptSampler and
-runs the functions from TranscriptSampler class
-
+spreads disease on farms and between farms.
 """
 
 import argparse

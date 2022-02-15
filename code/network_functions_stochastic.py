@@ -6,6 +6,7 @@ import datetime
 from io import StringIO
 from random import choices
 import numpy as np
+import pandas
 import pandas as pd
 
 # Indices from simulated_data matrix
@@ -100,15 +101,9 @@ def set_index_case(
     return index_farm_idx, index_farm_tvd
 
 
-def create_sim_data(
+def update_sim_data(
         index_farm_idx: int,
-        farm_list: list) -> np.array:
-    # initialize num_farms x 4 integer array (columns: susceptible, exposed, infected, deceased)
-    sim_data = np.zeros((len(farm_list), 4), dtype=int)
-
-    # update susceptible values with num of pigs for each farm
-    for idx, row in enumerate(farm_list):
-        sim_data[idx, SU] = row[NPIGS]
+        sim_data: np.array) -> np.array:
 
     # update index_case with 1 infected pig
     sim_data[index_farm_idx, INF] = 1
@@ -116,17 +111,15 @@ def create_sim_data(
     # remove one pig from index_case susceptible
     sim_data[index_farm_idx, SU] = sim_data[index_farm_idx, SU] - 1
 
-    # Replace all nans with 0.0
-    sim_data = np.nan_to_num(sim_data)
-
     return sim_data
 
 
-def create_tours(
+def create_tour_arr(
         start_date: datetime,
         end_date: datetime,
-        farm_dict: dict
-) -> np.array:
+        farm_dict: dict,
+        direct_transport_df: pandas.DataFrame
+    ) -> np.array:
     """ Creates the direct transport tour data frame, the other contact tour dataframe and the tour array.
 
     Only tours between start_date and end_date.
@@ -134,44 +127,10 @@ def create_tours(
     tour_arr is a binary 2-d array which is 1 for farm_idx that has a direct transport on that day.
     """
 
-    # From file, import farms from agis_data and create dict
-    with open('../data/tour_network.csv') as f:
-        # skip header line
-        header = next(f).strip()
+    direct_transport_df = direct_transport_df[(direct_transport_df['event_date'] >= start_date) &
+                                              (direct_transport_df['event_date'] <= end_date)]
 
-        # read in farms that are only active during the start year and end year
-        text = "\n".join([line for line in f if
-                          start_date <= datetime.date.fromisoformat(line.split(',')[2]) <= end_date])
-        tour_df = pd.read_csv(StringIO(text))
-
-    # Add the column headings
-    tour_df.columns = header.split(',')
-
-    # Convert event_date to datetime object
-    tour_df['event_date'] = pd.to_datetime(tour_df['event_date']).dt.date
-
-    # Convert tvds to ints
-    tour_df.iloc[:, 0:1] = tour_df.iloc[:, 0:1].values.astype(int)
-
-    # Convert tvds into index
-    tour_df['source_idx'] = tour_df['tvd_source'].map(farm_dict)
-    tour_df['dest_idx'] = tour_df['tvd_dest'].map(farm_dict)
-
-    # Drop tvd id columns
-    tour_df = tour_df.drop(['tvd_source', 'tvd_dest'], axis=1)
-
-    # Separate direct transports from other tour contacts
-    direct_transport_df = tour_df[tour_df['contact_type'] == 'd']
-    other_transport_df = tour_df[tour_df['contact_type'] != 'd']
-
-    # Drop contact_type column from direct transport
-    direct_transport_df = direct_transport_df.drop(['contact_type'], axis=1)
-
-    # Reindex columns for df
-    direct_transport_df = direct_transport_df.reindex(columns=column_names_direct)
-    other_transport_df = other_transport_df.reindex(columns=column_names_tour)
-
-    # Create tour array #
+    # Create tour array
 
     # number of difference in days
     diff_days = (end_date - start_date).days
@@ -191,7 +150,7 @@ def create_tours(
         day_count = day_count + 1
 
     # Return dataframe
-    return tour_arr, direct_transport_df, other_transport_df
+    return tour_arr, direct_transport_df
 
 
 def create_geo_arr(
@@ -291,8 +250,7 @@ def run_farm_spread(sus, exp, inf, dec):
     return S, E, I, D, E_to_I
 
 
-def update_spread_between_farms(farm_dict: dict,
-                                tour_arr: np.array,
+def update_spread_between_farms(tour_arr: np.array,
                                 direct_trans_df: pd.DataFrame,
                                 other_trans_df: pd.DataFrame,
                                 sim_data: np.array,
