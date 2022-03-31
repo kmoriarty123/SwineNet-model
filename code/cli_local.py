@@ -10,7 +10,7 @@ import time  # just for checking run time
 import numpy as np
 import pandas as pd
 import csv  # to write dictionary to file
-import network_functions as fun
+import network_functions_deterministic as fun
 
 parser = argparse.ArgumentParser(description='Simulate Network Spread')
 parser.add_argument('--start_date', type=datetime.date.fromisoformat, help="The Start Date - format YYYY-MM-DD", )

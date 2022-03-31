@@ -10,7 +10,7 @@
   - tvd_source, tvd_dest, distance (km), contact_type
 
 ### Constants
-Evidence for Choice of transmission rates
+Evidence for Choice of transmission rates (see google drive spreadsheet for more detailed values)
 - BET = contact_rate x transmission_rate 
   - contact_rate: all pigs interact with all other pigs once a day 
   - here it is between 0.95 and 1 https://www.frontiersin.org/articles/10.3389/fvets.2019.00248/full
@@ -35,7 +35,7 @@ Evidence for Choice of transmission rates
   
 ### Set up the environment
 1. create_farm_dict (tvd_id (key) farm_idx (value))
-2. set_index_case
+2. set_index_case (see more below of index case)
 3. create_sim_data (2-D array  size: num_farms x 4) 
     - columns: num susceptible pigs (begins at farm yearly average), num exposed, num_infected, num_deceased
     - rows: farms positioned at farm_idx
@@ -55,13 +55,38 @@ Evidence for Choice of transmission rates
 - py cli_single_tvd.py --start_date=2014-01-01 --end_date=2014-01-10 --curr_run=2 --stochastic --index_case_tvd_id=[tvd_id] --seed=2
 - py cli.py --start_date=2014-01-01 --end_date=2014-01-03 --curr_run=1 --stochastic --seed=1
 
-### Surveillance and Control Measures
+### Index Case 
+- wild boar
+  - list of higher prevalance cantons: 
+    - AG Walterswil, Würenlos 
+    - BE Lindenrain, Oberbipp-Nord 
+    - BL Mühlematt (both directions), Pratteln-Süd, Sonnenberg (both directions)
+    - FR Rose de la Broye 
+    - GR Campagnola (both directions)
+    - LU Chilchbüel, Inseli, Knutwil-Nord, Knutwil-Süd, Neuenkirch (both directions)
+    - SG Rheintal Ost, Rheintal West, Thurau Nord, Wildhus Nord 
+    - SH Berg, Moos 
+    - SO Eggberg, Gunzgen-Nord, Teufengraben 
+    - TG Hexentobel Nord 
+    - TI Bellinzona Nord, Bellinzona Sud, Bodio, Coldrerio (both directions), Giornico, Lavorgo (both
+directions), Moleno Nord, Moleno Sud, Motto, Muzzano (both directions), San Gottardo-Sud,
+Sasso, Segoma (both directions)
+    - VD Bavois, Crans-près-Céligny, St-Prex 
+    - VS Dents de Morcles 
+    - ZH Baltenswil-Nord, Büsisee, Chrüzstrass, Forrenberg Nord, Kemptthal, Stegen, Weinland (both
+directions)
+    source: https://www.biorxiv.org/content/10.1101/2021.05.17.444420v1.full.pdf
+- biosecurity
+
+### Surveillance and Control Measures (see google drive spreadsheet for values)
 1. Surveillance
    - testing at slaughterhouse (consider sensitivity and specificity of tests)
      - to do: (currently - for some diseases, slaughterhouse testing is every few months)
      - select all slaughterhouses and random draw from them (slaughterhouses are currently chosen at random)
      - current pigs
-   - testing at farms with many out-going transport (set different thresholds)
+   - surveillance at farms with many out-going transport (set different thresholds)
+   - surveillance at farms with higher mortality
+     - average mortality for Germany (https://porcinehealthmanagement.biomedcentral.com/articles/10.1186/s40813-021-00225-y)
    - reduce threshold for farm mandatory testing (currently based on certain % increase of deceased pigs or 2 (?) unexplained abortions)
 2. Control
   - increase biosecurity (explore which farms would make a difference)

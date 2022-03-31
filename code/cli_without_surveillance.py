@@ -55,9 +55,9 @@ def main():
 
     # Run stochastic functions if passed as parameter
     if stochastic:
-        import network_functions_stochastic as fun
-    elif deterministic:
         import network_functions as fun
+    elif deterministic:
+        import network_functions_deterministic as fun
 
     # Create farm index dictionary
     farm_dict, farm_list = fun.create_farm_dict(start_date.year, end_date.year)

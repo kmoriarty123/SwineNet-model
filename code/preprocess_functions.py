@@ -13,7 +13,7 @@ import pandas as pd
 SU, EX, INF, DE = 0, 1, 2, 3
 
 # Indices for farm_list
-TVD, NPIGS = 0, 6
+TVD, NPIGS = 1, 6
 
 # Indices for tour
 SRC, DEST, DATE, T_NPIGS, CNTCT = 0, 1, 2, 3, 4
@@ -26,7 +26,7 @@ column_names_geo = ['source_idx', 'dest_idx', 'dist']
 
 # Years of data
 beg_yr = 2014
-end_yr = 2020 #only until 2019 for AGIS data
+end_yr = 2020 #only until 2019 for AGIS data & Tour data
 
 def create_farm_dict():
     """ Initiates the farm matrix.
@@ -40,6 +40,7 @@ def create_farm_dict():
     farm_df['tot_pigs'] = farm_df['tot_pigs'].fillna(0)
 
     tmp_farm_dict = {}
+    #rev_tmp_farm_dict = {}
 
     # create separate farm_dict and farm_list for each year
     for yr in range(beg_yr, end_yr):
@@ -50,15 +51,21 @@ def create_farm_dict():
         # create list
         tmp_farm_list = tmp_farm_df.values.tolist()
 
-        # Store farm data as dictionary with idx as key and tvd_nr as value
+        # Store farm data as dictionary with tvd as key and idx as value
+        # REMOVED - And another dictionary with idx as key and tvd as value
         # TODO make sure index here is reset and not taking on old indices
         for idx, farm_info in enumerate(tmp_farm_list):
             tmp_farm_dict[farm_info[TVD]] = idx
+            #rev_tmp_farm_dict[idx] = farm_info[TVD]
 
         # Save farm_dict to file
         tmp_farm_dict_file = open("../data/farm_dict_" + str(yr) + ".pkl", "wb")
         pickle.dump(tmp_farm_dict, tmp_farm_dict_file)
         tmp_farm_dict_file.close()
+
+        #rev_tmp_farm_dict_file = open("../data/rev_farm_dict_" + str(yr) + ".pkl", "wb")
+        #pickle.dump(rev_tmp_farm_dict, rev_tmp_farm_dict_file)
+        #rev_tmp_farm_dict_file.close()
 
         # Save farm_list to file
         with open('../data/farm_list_'+ str(yr) + '.pkl', 'wb') as pickle_file:
@@ -66,6 +73,7 @@ def create_farm_dict():
 
     return
 
+# TODO Incorporate this functionality into previous function to speed up preprocess
 def create_sim_data():
 
     # Create different sim_data from each year
@@ -75,8 +83,8 @@ def create_sim_data():
         with open('../data/farm_list_' + str(yr) + '.pkl', 'rb') as pickle_load:
             tmp_farm_list = pickle.load(pickle_load)
 
-        # initialize num_farms x 4 integer array (columns: susceptible, exposed, infected, deceased)
-        tmp_sim_data = np.zeros((len(tmp_farm_list), 4), dtype=int)
+        # initialize num_farms x 4 integer array (columns: susceptible, exposed, infected, deceased, isolated)
+        tmp_sim_data = np.zeros((len(tmp_farm_list), 5), dtype=int)
 
         # update susceptible values with num of pigs for each farm
         for idx, row in enumerate(tmp_farm_list):
@@ -123,7 +131,8 @@ def create_tours():
         tmp_farm_dict_file.close()
 
         tmp_tour_df = tour_df.copy()
-        # Convert tvds into index
+
+        # Add idx based on tvds
         tmp_tour_df['source_idx'] = tmp_tour_df['tvd_source'].map(tmp_farm_dict)
         tmp_tour_df['dest_idx'] = tmp_tour_df['tvd_dest'].map(tmp_farm_dict)
 
@@ -183,8 +192,10 @@ def create_geo_arr():
         tmp_geo_net = geo_net.copy()
 
         # Map the tvd_id with the farm_idx
-        tmp_geo_net.loc[:, 'source_idx'] = tmp_geo_net.loc[:, 'tvd_source'].map(tmp_farm_dict)
-        tmp_geo_net.loc[:, 'dest_idx'] = tmp_geo_net.loc[:, 'tvd_dest'].map(tmp_farm_dict)
+        #tmp_geo_net.loc[:, 'source_idx'] = tmp_geo_net.loc[:, 'tvd_source'].map(tmp_farm_dict)
+        #tmp_geo_net.loc[:, 'dest_idx'] = tmp_geo_net.loc[:, 'tvd_dest'].map(tmp_farm_dict)
+        tmp_geo_net['source_idx'] = tmp_geo_net['tvd_source'].map(tmp_farm_dict)
+        tmp_geo_net['dest_idx'] = tmp_geo_net['tvd_dest'].map(tmp_farm_dict)
 
         # Drop any values that weren't matched as not in active agis database
         tmp_geo_net.dropna(subset=['source_idx', 'dest_idx'], inplace=True, axis=0)
