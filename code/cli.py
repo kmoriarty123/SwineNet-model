@@ -7,34 +7,51 @@ spreads disease on farms and between farms.
 
 import argparse
 import datetime
-import os
 import pickle
 import random
 
 import numpy as np
 import pandas as pd
 
-import surveillance_functions as surv
+import surveillance_functions_slaughter as surv_s
+import surveillance_functions_farmer as surv_f
+import surveillance_functions_network as surv_n
 import network_functions as fun
+import transmit_disease as ts
 
 parser = argparse.ArgumentParser(description='Simulate Network Spread')
-# parser.add_argument('--output_dir', type=argparse.FileType('w'), help="File for output")
-parser.add_argument('--start_date', type=datetime.date.fromisoformat, help="The Start Date - format YYYY-MM-DD", )
-parser.add_argument('--end_date', type=datetime.date.fromisoformat, help="The End Date - format YYYY-MM-DD", )
-parser.add_argument('--curr_run', type=int, help="The current run number")
-# parser.add_argument('--stochastic', action='store_true', help='Include to run stochastic methods.')
-# parser.add_argument('--not_stochastic', action='store_true', help='Include to run more deterministic methods.')
-parser.add_argument('--seed', type=int, help="Seed for the current run")
-parser.add_argument('--surveillance', type=str, default='no',
-                    help="Surveillance Program(s). Options: no, slaughter, farmer, network")
-parser.add_argument('--mort_rate_inc', type=float, default=0.10,
+parser.add_argument('--disease', type=str, default='PRRS',
+                    help="Disease To Simulate. Options: ASF, APP, PRRS, EP")
+parser.add_argument('--start_date', type=datetime.date.fromisoformat,
+                    help="The Start Date - format YYYY-MM-DD", )
+parser.add_argument('--end_date', type=datetime.date.fromisoformat,
+                    help="The End Date - format YYYY-MM-DD", )
+parser.add_argument('--curr_run', type=int,
+                    help="The current run number")
+parser.add_argument('--seed', type=int,
+                    help="Seed for the current run")
+parser.add_argument('--phi_factor', type=float, default=1.0,
+                    help="Factor of phi")
+parser.add_argument('--psi_factor', type=float, default=1.0,
+                    help="Factor of psi")
+parser.add_argument('--idx_case_factor', type=int, default=3,
+                    help="Choose Risk Factor for Index Weight")
+parser.add_argument('--surveillance', type=str, default='none',
+                    help="Surveillance Program(s). Options: none, slaughter, farmer, network")
+parser.add_argument('--control', type=str, default='none',
+                    help="Control Measures. Options: none, quarantine")
+parser.add_argument('--mort_rate_inc', type=float, default=1,
                     help="Mortality rate increase for farmer-based surveillance")
+parser.add_argument('--morbid_rate', type=float, default=1,
+                    help="Morbidity rate for farmer-based surveillance")
 parser.add_argument('--test_date_int', type=int, default=90,
                     help="Number of days between testing at farms with specific network metrics")
 parser.add_argument('--test_contact_net', nargs="*", type=str, default=['d'],
                     help="Contact Network types as list for testing farms")
 parser.add_argument('--test_top_thresh', type=int, default=250,
                     help="Top number of farms with a certain network metric")
+parser.add_argument('--num_sh', type=int, default=9,
+                    help="Number of Slaughterhouses to choose")
 
 
 def main():
@@ -48,34 +65,73 @@ def main():
 
     # Read arguments
     args = parser.parse_args()
+    disease = args.disease
     start_date = args.start_date
     end_date = args.end_date
     curr_run = args.curr_run
     seed = args.seed
 
+    # Sensitivity analysis parameters
+    phi_factor = args.phi_factor
+    psi_factor = args.psi_factor
+    idx_case_factor = args.idx_case_factor
+
     # Surveillance specific parameters
     surveillance_type = args.surveillance
     mortality_rate_inc = args.mort_rate_inc
+    morbid_rate = args.morbid_rate
     testing_date_interval = args.test_date_int
     testing_contact_network_list = args.test_contact_net
     test_top_thresh = args.test_top_thresh
+    num_sh = args.num_sh
 
+    # Control specific parameters
+    control = args.control
+
+    # Disease specific parameters
+    if disease == 'PRRS':
+        from PRRS_setup import Parameters as ds
+    elif disease == "APP":
+        from APP_setup import Parameters as ds
+    elif disease == "ASF":
+        from ASF_setup import Parameters as ds
+
+    # Change phi and psi for sensitivity analysis (default factor is 1 so will remain the same)
+    ds.PHI = ds.PHI * phi_factor
+    ds.PSI = ds.PSI * psi_factor
+
+    # Define the output_dir based on the parameters
     if surveillance_type == 'network':
-        output_dir = "../output/" + str(start_date.year) + "_" + str(start_date.month) + "_" + str(
-            start_date.day) + "/" + surveillance_type + "_surv" + "/" + "nets_" +  str(test_top_thresh) + "_" + \
+        output_dir = "../output/" + str(disease) + "/" + str(start_date.year) + "_" + str(start_date.month) + "_" + str(
+            start_date.day) + "/" + surveillance_type + "_surv" + "/" + "nets_" + str(test_top_thresh) + "_" + \
                      str(testing_date_interval) + "_" + "_".join(testing_contact_network_list) + "/"
     elif surveillance_type == 'farmer':
-        output_dir = "../output/" + str(start_date.year) + "_" + str(start_date.month) + "_" + str(
-            start_date.day) + "/" + surveillance_type + "_surv" + "/" + "mort_rate_inc_" + str(mortality_rate_inc) + "/"
-    else:
-        output_dir = "../output/" + str(start_date.year) + "_" + str(start_date.month) + "_" + str(
-            start_date.day) + "/" + surveillance_type + "_surv" + "/"
+        if mortality_rate_inc < 1:
+            output_dir = "../output/" + str(disease) + "/" + str(start_date.year) + "_" + str(start_date.month) + \
+                         "_" + str(start_date.day) + "/" + surveillance_type + "_surv" + "/" + "mort_rate_inc_" + str(mortality_rate_inc) + "/"
+        else:
+            output_dir = "../output/" + str(disease) + "/" + str(start_date.year) + "_" + str(start_date.month) + \
+                         "_" + str(start_date.day) + "/" + surveillance_type + "_surv" + "/" + "morbid_rate_" + \
+                         str(morbid_rate) + "/"
+    elif surveillance_type == 'slaughter':
+        output_dir = "../output/" + str(disease) + "/" + str(start_date.year) + "_" + str(start_date.month) + "_" + str(
+            start_date.day) + "/" + surveillance_type + "_surv" + "/" + "num_sh_" + str(num_sh) + "/"
+    elif surveillance_type == 'none':
+        if idx_case_factor != 3:
+            output_dir = "../output/" + str(disease) + "/" + str(start_date.year) + "_" + str(
+                start_date.month) + "_" + str(
+                start_date.day) + "/" + "no_surv" + "/" + "phi_factor_" + str(phi_factor) + "_psi_factor_" + str(
+                psi_factor) + "_idx_case_factor_" + str(idx_case_factor) + "/"
+        else:
+            output_dir = "../output/" + str(disease) + "/" + \
+                         str(start_date.year) + "_" + str(start_date.month) + "_" + str(start_date.day) + "/" + \
+                         "no_surv" + "/" + "phi_factor_" + str(phi_factor) + "_psi_factor_" + str(psi_factor) + "/"
 
     # Set seed for the current run
     random.seed(seed)
     np.random.seed(seed)
 
-    # initialize lists
+    # initialize lists / dicts
     infected_farm_list = []
     infected_pig_list = []
     inspected_tours_list = []  # to store info regarding tours that were inspected and found infected pigs
@@ -84,13 +140,7 @@ def main():
     # Set current date
     curr_date = start_date
 
-    print(f"run: {curr_run}", flush=True)
-
-    # Run stochastic functions if passed as parameter
-    # if stochastic:
-    #    import network_functions_stochastic as fun
-    # elif deterministic:
-    #    import network_functions as fun
+    print(f"run: {curr_run}, surv_type: {surveillance_type}", flush=True)
 
     # Load preprocessed farm dictionary from file
     farm_dict_file = open("../data/farm_dict_" + str(start_date.year) + ".pkl", "rb")
@@ -111,14 +161,19 @@ def main():
     direct_trans_df = pd.read_pickle("../data/direct_trans_" + str(start_date.year) + ".pkl")
     other_trans_df = pd.read_pickle("../data/other_trans_" + str(start_date.year) + ".pkl")
 
-    # Generate random index farm
+    # Generate index farm based on different factors of each disease
     index_farm_idx, index_farm_tvd = fun.set_index_case(farm_list,
                                                         curr_run,
-                                                        output_dir)
-
+                                                        output_dir,
+                                                        disease,
+                                                        idx_case_factor)
     # Update sim data with index case information
     sim_data = fun.update_sim_data(index_farm_idx,
                                    sim_data)
+    # For PRRS, for all farms with sows, move the susceptibles to new compartment SUS for different transmission params
+    if disease == 'PRRS':
+        sim_data = fun.update_sim_data_sows_PRRS(farm_list,
+                                                 sim_data)
 
     # Create tour network dataframe for only concerned dates
     tour_arr, direct_trans_df = fun.create_tour_arr(start_date,
@@ -132,56 +187,75 @@ def main():
     if surveillance_type == 'slaughter':
 
         # Create list of slaughter houses that are randomly selected for surveillance
-        slaughter_indices = surv.create_slaughterhouse_list(farm_list, curr_run, output_dir)
+        slaughter_indices = surv_s.create_slaughterhouse_list(farm_list, curr_run, output_dir, num_sh)
 
-        direct_trans_df = surv.find_transports_to_slaughter(slaughter_indices, direct_trans_df)
+        direct_trans_df = surv_s.find_transports_to_slaughter(slaughter_indices, direct_trans_df,
+                                                              start_date.year, end_date.year)
 
         while curr_date <= end_date:
             print(f"curr_date: {curr_date}", flush=True)
 
             # Spread infection among pigs in the farm
-            sim_data, infected_farm_list, infected_pig_list = fun.update_spread_within_farms(sim_data,
-                                                                                             infected_farm_list,
-                                                                                             curr_date,
-                                                                                             infected_pig_list)
+            sim_data, infected_farm_list, infected_pig_list = ts.update_spread_within_farms(sim_data,
+                                                                                            infected_farm_list,
+                                                                                            curr_date,
+                                                                                            infected_pig_list,
+                                                                                            ds)
             # Spread infection between farms
             sim_data, infected_pig_list, inspected_tours_list = \
-                surv.update_spread_between_farms_surv(tour_arr,
-                                                      direct_trans_df,
-                                                      other_trans_df,
-                                                      sim_data,
-                                                      curr_date,
-                                                      day_count,
-                                                      geo_arr,
-                                                      infected_pig_list,
-                                                      inspected_tours_list)
+                surv_s.update_spread_between_farms_slaught_surv(tour_arr,
+                                                                direct_trans_df,
+                                                                other_trans_df,
+                                                                sim_data,
+                                                                curr_date,
+                                                                day_count,
+                                                                geo_arr,
+                                                                infected_pig_list,
+                                                                inspected_tours_list,
+                                                                control,
+                                                                ds)
             # move to the next day
             curr_date += datetime.timedelta(days=1)
             day_count = day_count + 1
 
     elif surveillance_type == 'farmer':
+        # Farm tracking for surveillance delay of farm-based morbidity and mortality alerts
+        farmer_alert_arr = np.full((len(sim_data), 1), False)  # to track which farms have initiated testing
+        farmer_alert_dict = {}  # to store farmer idx for farmer_surveilance delay
 
         while curr_date <= end_date:
             print(f"curr_date: {curr_date}", flush=True)
 
+            if curr_date in farmer_alert_dict:
+                sim_data, inspected_farm_list = surv_f.deploy_farmer_surv(farmer_alert_dict,
+                                                                          sim_data,
+                                                                          inspected_farm_list,
+                                                                          curr_date,
+                                                                          control)
             # Spread infection among pigs in the farm
-            sim_data, infected_farm_list, infected_pig_list, inspected_farm_list = surv.update_spread_within_farms_surv(
-                sim_data,
-                infected_farm_list,
-                curr_date,
-                infected_pig_list,
-                mortality_rate_inc,
-                inspected_farm_list)
+            sim_data, infected_farm_list, infected_pig_list, \
+            farmer_alert_dict, farmer_alert_arr = \
+                surv_f.update_spread_within_farms_surv(
+                    sim_data,
+                    infected_farm_list,
+                    curr_date,
+                    infected_pig_list,
+                    mortality_rate_inc,
+                    morbid_rate,
+                    farmer_alert_dict,
+                    farmer_alert_arr,
+                    ds)
 
             # Spread infection between farms
-            sim_data, infected_pig_list = fun.update_spread_between_farms(tour_arr,
-                                                                          direct_trans_df,
-                                                                          other_trans_df,
-                                                                          sim_data,
-                                                                          curr_date,
-                                                                          day_count,
-                                                                          geo_arr,
-                                                                          infected_pig_list)
+            sim_data, infected_pig_list = ts.update_spread_between_farms(tour_arr,
+                                                                         direct_trans_df,
+                                                                         other_trans_df,
+                                                                         sim_data,
+                                                                         curr_date,
+                                                                         day_count,
+                                                                         geo_arr,
+                                                                         infected_pig_list,
+                                                                         ds)
             # move to the next day
             curr_date += datetime.timedelta(days=1)
             day_count = day_count + 1
@@ -189,62 +263,67 @@ def main():
     elif surveillance_type == 'network':
 
         # pick testing dates for farms that have specific network metrics
-        test_dates_list = surv.pick_test_dates(testing_date_interval,
-                                               start_date,
-                                               end_date)
+        test_dates_list = surv_n.pick_test_dates(testing_date_interval,
+                                                 start_date,
+                                                 end_date)
         # create testing_farm_list
-        testing_farm_idx = surv.create_test_farm_list(farm_dict,
-                                                      testing_contact_network_list,
-                                                      test_top_thresh)
+        testing_farm_idx = surv_n.create_test_farm_list(farm_dict,
+                                                        testing_contact_network_list,
+                                                        test_top_thresh)
 
         while curr_date <= end_date:
             print(f"curr_date: {curr_date}", flush=True)
 
             # Spread infection among pigs in the farm
-            sim_data, infected_farm_list, infected_pig_list = fun.update_spread_within_farms(sim_data,
-                                                                                             infected_farm_list,
-                                                                                             curr_date,
-                                                                                             infected_pig_list)
+            sim_data, infected_farm_list, infected_pig_list = ts.update_spread_within_farms(sim_data,
+                                                                                            infected_farm_list,
+                                                                                            curr_date,
+                                                                                            infected_pig_list,
+                                                                                            ds)
             # Spread infection between farms
-            sim_data, infected_pig_list = fun.update_spread_between_farms(tour_arr,
-                                                                          direct_trans_df,
-                                                                          other_trans_df,
-                                                                          sim_data,
-                                                                          curr_date,
-                                                                          day_count,
-                                                                          geo_arr,
-                                                                          infected_pig_list)
+            sim_data, infected_pig_list = ts.update_spread_between_farms(tour_arr,
+                                                                         direct_trans_df,
+                                                                         other_trans_df,
+                                                                         sim_data,
+                                                                         curr_date,
+                                                                         day_count,
+                                                                         geo_arr,
+                                                                         infected_pig_list,
+                                                                         ds)
 
             if curr_date in test_dates_list:
                 print("TESTING DAY!: ", curr_date)
-                sim_data, inspected_farm_list = surv.network_surv_test_farm(testing_farm_idx,
-                                                                            sim_data,
-                                                                            inspected_farm_list,
-                                                                            curr_date)
+                sim_data, inspected_farm_list = surv_n.network_surv_test_farm(testing_farm_idx,
+                                                                              sim_data,
+                                                                              inspected_farm_list,
+                                                                              curr_date,
+                                                                              control)
 
             # move to the next day
             curr_date += datetime.timedelta(days=1)
             day_count = day_count + 1
 
-    elif surveillance_type == 'no':
+    elif surveillance_type == 'none':
         while curr_date <= end_date:
             print(f"curr_date: {curr_date}", flush=True)
 
             # Spread infection among pigs in the farm
-            sim_data, infected_farm_list, infected_pig_list = fun.update_spread_within_farms(sim_data,
-                                                                                             infected_farm_list,
-                                                                                             curr_date,
-                                                                                             infected_pig_list)
+            sim_data, infected_farm_list, infected_pig_list = ts.update_spread_within_farms(sim_data,
+                                                                                            infected_farm_list,
+                                                                                            curr_date,
+                                                                                            infected_pig_list,
+                                                                                            ds)
 
             # Spread infection between farms
-            sim_data, infected_pig_list = fun.update_spread_between_farms(tour_arr,
-                                                                          direct_trans_df,
-                                                                          other_trans_df,
-                                                                          sim_data,
-                                                                          curr_date,
-                                                                          day_count,
-                                                                          geo_arr,
-                                                                          infected_pig_list)
+            sim_data, infected_pig_list = ts.update_spread_between_farms(tour_arr,
+                                                                         direct_trans_df,
+                                                                         other_trans_df,
+                                                                         sim_data,
+                                                                         curr_date,
+                                                                         day_count,
+                                                                         geo_arr,
+                                                                         infected_pig_list,
+                                                                         ds)
 
             # move to the next day
             curr_date += datetime.timedelta(days=1)
@@ -252,15 +331,23 @@ def main():
 
     # Summarize data for that run
     results_all = pd.DataFrame(infected_farm_list,
-                               columns=['date', 'farm_idx', 'susceptible', 'exposed', 'infected', 'deceased',
-                                        'isolated'])
+                               columns=['date', 'farm_idx',
+                                        'susceptible', 'exposed',
+                                        'infected', 'asymptomatic',
+                                        'removed', 'recovered',
+                                        'isolated', 'quarantined_s', 'quarantined_e', 'quarantined_a'])
 
     results_by_compart = results_all.groupby('date', as_index=False).agg({
         'farm_idx': "count",
         'exposed': sum,
         'infected': sum,
-        'deceased': sum,
-        'isolated': sum
+        'asymptomatic': sum,
+        'removed': sum,
+        'recovered': sum,
+        'isolated': sum,
+        'quarantined_s': sum,
+        'quarantined_e': sum,
+        'quarantined_a': sum,
     })
 
     # Add the number of the curr run
@@ -316,7 +403,7 @@ def main():
                delimiter=", ", fmt='%s,%s,%i,%i')
     np.savetxt(output_dir + "results_by_compart_" + str(curr_run) + ".csv",
                results_by_compart,
-               delimiter=", ", fmt='%s,%i,%i,%i,%i,%i,%i')
+               delimiter=", ", fmt='%s,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i')
 
     end = datetime.datetime.now()
     print("Run time: ", (end - start).total_seconds())
