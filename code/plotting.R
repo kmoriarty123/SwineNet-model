@@ -10,7 +10,7 @@ rm(list=ls())
 library(dplyr)
 library(tidyr)
 setwd("Z:/Datasets/NetworkMaterial/SwineNet-model/output/")
-folder = "APP/2014_1_1/"
+folder = "APP/2019_5_1/"
 
 load(paste0(folder, "all_compartment.RData"))
 load(paste0(folder, "all_compart_data_sum.RData"))
