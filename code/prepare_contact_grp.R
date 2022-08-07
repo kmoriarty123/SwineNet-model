@@ -3,18 +3,21 @@
 ## author : Kathleen Moriarty
 ## date_created : 29.05.2022
 ## output: .RData files:
-#total_NS_contact_data
-#total_NS_contact_data_sum
-#total_NS_contact_data_sum_long
+
 #############################################################
 
+rm(list=ls())
+library(dplyr)
+setwd("Z:/Datasets/NetworkMaterial/SwineNet-model/output/")
 # load data
 list_disease = c("APP", "ASF", "PRRS")
-list_start_date = c('2014_1_1', '2019_5_1', '2014_5_1', '2019_1_1')
-
+start_date_lim = '2019-05-01' 
+list_start_date = c('2014_1_1','2014_5_1','2019_1_1','2019_5_1')
 # for storing results
-total_NS_contact_data_sum = data.frame()
-total_NS_contact_data = data.frame()
+total_contact_data_sum = data.frame()
+total_contact_data = data.frame()
+all_total_contact_data_sum = data.frame()
+all_total_contact_data = data.frame()
 
 for (j in 1:(length(list_disease))){
   for (k in 1:(length(list_start_date))){
@@ -24,22 +27,31 @@ for (j in 1:(length(list_disease))){
     print(disease)
     print(start_date)
     
-    folder = paste0(disease, '/', start_date, "/no_surv")
+    # folders for no_surv and all the sensitivity folders
+    folder1 = paste0(disease, '/', start_date, "/no_surv")
+    folder2 = paste0(disease, '/', start_date, "/sensitivity")
+    
     # used to subset the directory name for the surv_pgrm_title
-    #date <- '2014_1_1'
     contact_filename <- '/results_by_contact_grp_all.txt'
     
     total_contact_data <- data.frame()
     
     # grab list of results_by_compart_all.txt files
-    list_of_contact_files <- list.files(path = folder, 
+    list_of_contact_files1 <- list.files(path = folder1, 
                                         recursive = TRUE,
                                         pattern = "results_by_contact_grp_all.txt", 
                                         full.names = TRUE)
     
+    list_of_contact_files2 <- list.files(path = folder2, 
+                                        recursive = TRUE,
+                                        pattern = "results_by_contact_grp_all.txt", 
+                                        full.names = TRUE)
+    
+    # combine the no_surv with sensitivty files
+    list_of_contact_files = append(list_of_contact_files1, list_of_contact_files2)
+    
     # Preparing compartment txt files
-    contact_colnames <- c('date', 'contact_type', 'num_inf_pigs',
-                          'num_run')
+    contact_colnames <- c('date', 'contact_type', 'num_inf_pigs','num_run')
     
     for (i in 1:(length(list_of_contact_files))){
       print(i)
@@ -57,11 +69,11 @@ for (j in 1:(length(list_disease))){
       colnames(tmp_contact_df) <- contact_colnames
       
       # Create cumulative sum of infected by contact type
-      tmp_contact_df <- tmp_contact_df %>% 
-        group_by(contact_type, num_run) %>% 
-        #arrange(date) %>% 
-        mutate(cum_num_inf = cumsum(num_inf_pigs)) %>% 
-        ungroup()
+      #tmp_contact_df <- tmp_contact_df %>% 
+      #  group_by(contact_type, num_run) %>% 
+      #  arrange(date) %>% 
+      #  mutate(cum_num_inf = cumsum(num_inf_pigs)) %>% 
+      #  ungroup()
       
       tmp_contact_df$disease <- disease
       tmp_contact_df$surv_pgrm <- surv_pgrm_name
@@ -76,7 +88,7 @@ for (j in 1:(length(list_disease))){
       
     }
     
-    no_surv_contact_data <- total_contact_data %>% 
+    contact_data <- total_contact_data %>% 
       mutate(contact_name = case_when(contact_type == 'f' ~ 'Within Farm',
                                       contact_type == 'd' ~ 'Direct Transfer',
                                       contact_type == 'g' ~ 'Geographic',
@@ -85,58 +97,269 @@ for (j in 1:(length(list_disease))){
                                       contact_type == 'e' ~ 'External Truck'))
     
     # Save individual disease + start_date raw data to file
-    save(no_surv_contact_data, file= paste0(disease, '/', start_date, "/no_surv_contact_data.RData"))
+    save(contact_data, file= paste0(disease, '/', start_date, "/contact_data.RData"))
     
     # median/maximum of data across num_runs
-    no_surv_contact_data_sum <- no_surv_contact_data %>% 
-      group_by(disease, start_date, date, day, surv_pgrm, contact_name) %>% 
-      summarize(med_num_inf_pigs = median(num_inf_pigs),
-                max_num_inf_pigs = max(num_inf_pigs),
-                med_cum_inf = median(cum_num_inf),
-                mean_num_inf_pigs = mean(num_inf_pigs),
-                mean_cum_inf = mean(cum_num_inf)) %>% 
-      ungroup()
+    #contact_data_sum <- contact_data %>% 
+    #  group_by(disease, start_date, date, day, surv_pgrm, contact_name) %>% 
+    #  summarize(med_num_inf_pigs = median(num_inf_pigs),
+    #            max_num_inf_pigs = max(num_inf_pigs),
+    #            med_cum_inf = median(cum_num_inf),
+    #            mean_num_inf_pigs = mean(num_inf_pigs),
+    #            mean_cum_inf = mean(cum_num_inf)) %>% 
+    #  ungroup()
     
     # make data longer based on median/max values
-    no_surv_contact_data_sum_long <- no_surv_contact_data_sum %>% 
-      pivot_longer(med_num_inf_pigs:mean_cum_inf)
-    
-    # # cumulative sum of infected pigs
-    # no_surv_contact_data_cum <- no_surv_contact_data_sum %>%
-    #   group_by(disease, start_date, surv_pgrm, contact_name) %>% 
-    #   arrange(date) %>% # or, order_by parameter in lag function
-    #   mutate(cum_sum_med_inf = cumsum(med_num_inf_pigs),
-    #          cum_sum_max_inf = cumsum(max_num_inf_pigs)) %>% 
-    #   ungroup()
+    #contact_data_sum_long <- contact_data_sum %>% 
+    #  pivot_longer(med_num_inf_pigs:mean_cum_inf)
     
     # bind all diseases
-    total_NS_contact_data <- rbind(total_NS_contact_data, no_surv_contact_data)
-    total_NS_contact_data_sum <- rbind(total_NS_contact_data_sum, no_surv_contact_data_sum)
+    all_total_contact_data <- rbind(all_total_contact_data, contact_data)
+    #all_total_contact_data_sum <- rbind(all_total_contact_data_sum, contact_data_sum)
     
   }
 }
 
 # save combined raw data to file
-save(total_NS_contact_data, file="total_NS_contact_data.RData")
+save(all_total_contact_data, file="total_contact_data.RData")
+#load("total_contact_data.RData")
+#save(all_total_contact_data_sum, file="all_total_contact_data_sum.RData")
 
-# split surveillance pgrm by phi and psi factors
-total_NS_contact_data_sum <- total_NS_contact_data_sum %>% 
-  mutate(surv_pgrm2 = surv_pgrm) %>% 
-  separate(surv_pgrm2, 
-           into=c("s1","s2","phi_factor","s3", "s4","psi_factor"),
-           sep="_") %>%
-  select(-c(s1, s2, s3, s4))
+#####
+## Fill the missing days in which no transfer of pathogen was simulated
+## Only care about the 2019_5_1 start_date, in which I have run all sensitivity
+#####
 
-# save summary data to file
-save(total_NS_contact_data_sum, file="total_NS_contact_data_sum.RData")
+# Limit all_total_contact_data to 2019-05-01
+total_contact_data_2019_5 <- all_total_contact_data %>% 
+  filter(start_date == '2019-05-01') 
+  
+# Create df with all possible dates
+list_surv_pgrm_df <- all_total_contact_data %>% distinct(surv_pgrm)
+list_surv_pgrm <- list_surv_pgrm_df$surv_pgrm
+list_contact_type_df <- all_total_contact_data %>% distinct(contact_type)
+list_contact_type <- list_contact_type_df$contact_type
+total_rows = data.frame()
+n=244
 
-# make data long on phi/psi factor
-total_NS_contact_data_sum_long <- total_NS_contact_data_sum %>% 
-  pivot_longer(phi_factor:psi_factor)
+# create dummy dataframe 
+for (i in 1:(length(list_disease))){
+  for (j in 1:(length(list_surv_pgrm))){
+    for (k in 1:(length(list_contact_type))){
+      
+        tmp_df <- data.frame('disease' = list_disease[i],
+                           'surv_pgrm' = list_surv_pgrm[j],
+                           'contact_type' = list_contact_type[k],
+                           'day' = 0:n)
+      
+      rows= c(1:nrow(tmp_df))
+      # repeat rows for each simulation row
+      tmp_df <- tmp_df[rep(rows, 1000),]
+      #create variable for num_run
+      tmp_df <- tmp_df %>% 
+        group_by(day) %>% 
+        mutate(num_run = 1:1000)
+      
+      
+      total_rows = rbind(tmp_df, total_rows)
+    }
+  }
+}
 
-# remove all rows that are not necessary
-total_NS_contact_data_sum_long <- total_NS_contact_data_sum_long %>% 
-  filter(!(surv_pgrm != 'phi_factor_1.0_psi_factor_1.0' & 
-             value == '1.0'))
+#load('dummy_simulation_template.RData')
+save(total_rows, file="dummy_simulation_template.RData")
 
-save(total_NS_contact_data_sum_long, file="total_NS_contact_data_sum_long.RData")
+# merge this dataframe with contact data
+total_rows_join <- total_contact_data_2019_5  %>% 
+  full_join(total_rows,
+            by = c("disease" = "disease",
+                   "surv_pgrm" = "surv_pgrm",
+                   "contact_type" = "contact_type",
+                   "day" = "day",
+                   "num_run" = "num_run"))
+
+# Update num_inf_rows to 0 where NA
+total_rows_join <- total_rows_join %>% 
+  mutate(num_inf_pigs = ifelse(is.na(num_inf_pigs), 0, num_inf_pigs)) %>% 
+  select(-c(date, start_date)) %>% 
+  mutate(contact_name = case_when(contact_type == 'f' ~ 'Within Farm',
+                                contact_type == 'd' ~ 'Direct Transfer',
+                                contact_type == 'g' ~ 'Geographic',
+                                contact_type == 't' ~ 'Direct Truck Share',
+                                contact_type == 'i' ~ 'Indirect Truck Share',
+                                contact_type == 'e' ~ 'External Truck'))
+
+# Check the table
+tmp <- total_contact_data_2019_5 %>%
+  filter(disease == 'APP', 
+         surv_pgrm == 'eta_factor_50.0',
+         contact_type == 't')
+
+tmp <- total_rows %>%
+  filter(disease == 'APP', 
+         surv_pgrm == 'eta_factor_50.0',
+         contact_type == 't',
+         day == 244)
+
+tmp <- total_rows_join %>%
+  filter(disease == 'APP', 
+         surv_pgrm == 'eta_factor_50.0',
+         contact_type == 't',
+         day == 244)
+
+save(total_rows_join, file=paste0(start_date_lim, "contact_data_filled.RData"))
+#load('2019-05-01contact_data_filled.RData')
+
+#####
+## Run summary Stats on the data
+#####
+
+# Don't need total_rows nor total_contact_data sets anymore
+total_rows = NULL
+total_contact_data_2019_5 = NULL
+
+# Create cumulative values
+total_rows_join_cum <- total_rows_join %>% 
+  group_by(disease, 
+           contact_name, 
+           surv_pgrm, 
+           num_run) %>% 
+  arrange(day) %>% 
+  mutate(cum_num_inf = cumsum(num_inf_pigs)) %>% 
+  ungroup()
+
+# check some rows
+tmp <- total_rows_join_cum %>% 
+  filter(surv_pgrm == "eta_factor_50.0",
+         disease == "ASF",
+         contact_name == "Direct Truck Share",
+         num_run == 393)
+
+# Create median
+total_rows_join_cum_sum <- total_rows_join_cum %>% 
+  group_by(disease, day, surv_pgrm, contact_name) %>% 
+  summarize(med_num_inf_pigs = median(num_inf_pigs),
+            max_num_inf_pigs = max(num_inf_pigs),
+            med_cum_inf = median(cum_num_inf),
+            max_cum_inf = max(cum_num_inf)) %>% 
+  ungroup()
+
+save(total_rows_join_cum_sum, file=paste0(start_date_lim, "contact_data_cum_sum.RData"))
+
+#####
+## For proportions of routes of transmission
+#####
+
+# Add total daily total median cumulative inf # of pigs column
+contact_data_prop <- total_rows_join_cum_sum %>% 
+  group_by(disease, day, surv_pgrm) %>% 
+  mutate(daily_total_cum_inf_pigs = sum(med_cum_inf)) %>% 
+  ungroup()
+
+# Calculate the proportion for each contact_type for that day
+contact_data_prop <- contact_data_prop %>% 
+  mutate(prop_cum_inf = med_cum_inf/daily_total_cum_inf_pigs,
+         prop_cum_inf = ifelse(is.na(prop_cum_inf), 0, prop_cum_inf))
+
+save(contact_data_prop, file=paste0(start_date_lim, "contact_data_prop.RData"))
+
+#####################################################################
+# LIMIT the observations to only the simulations that took off
+#####################################################################
+
+load('list_scenarios_take_off.RData')
+load("total_contact_data.RData")
+load('num_run_take_off_no_surv.RData')
+
+total_compart_data_from_no_surv_take_off <- all_total_compart_data %>% 
+  inner_join(num_run_take_off_no_surv, by=c('disease' = 'disease', 
+                                            'num_run' = 'num_run',
+                                            'start_date' = 'start_date'))
+
+# filter for only the scenarios and num_runs that "took off"
+# contact_data_take_off_old <- all_total_contact_data %>% 
+#   inner_join(list_scenarios_take_off,
+#              by=c("disease", 'start_date', 'surv_pgrm', 'num_run'))
+
+contact_data_take_off <- all_total_contact_data %>% 
+  inner_join(num_run_take_off_no_surv, by=c('disease' = 'disease', 
+                                            'num_run' = 'num_run',
+                                            'start_date' = 'start_date'))
+
+#contact_data_take_off_sum <- contact_data_take_off %>% 
+#  filter(num_inf_pigs > 0) %>% 
+#  group_by(disease, surv_pgrm, start_date, num_run, contact_type) %>% 
+#  summarize(sum_num_inf = sum(num_inf_pigs)) %>% 
+#  ungroup()
+
+#total_NS_contact_sum_take_off <- total_NS_contact_sum_num_run_take_off %>% 
+#  group_by(disease, surv_pgrm, start_date, contact_type) %>% 
+#  summarize(med_sum_num_inf = median(sum_num_inf)) %>% 
+#  ungroup()
+
+#save(total_NS_contact_sum_take_off, file='total_NS_contact_sum_take_off.RData')
+
+# Filter total_rows_join to only the scenarios that 'took off'
+
+list_take_off_lim <- num_run_take_off_no_surv %>% 
+  filter(start_date == start_date_lim) %>% 
+  select(-c(start_date))
+
+total_rows_join_take_off <- total_rows_join %>% 
+  inner_join(list_take_off_lim,
+             by=c("disease", 'num_run'))
+
+# Create cumulative values
+total_rows_join_take_off_cum <- total_rows_join_take_off %>% 
+  group_by(disease, 
+           contact_name, 
+           surv_pgrm, 
+           num_run) %>% 
+  arrange(day) %>% 
+  mutate(cum_num_inf = cumsum(num_inf_pigs)) %>% 
+  ungroup()
+
+# check some rows
+tmp <- total_rows_join_take_off_cum %>% 
+  filter(surv_pgrm == "eta_factor_50.0",
+         disease == "PRRS",
+         contact_name == "Direct Truck Share"
+         )
+
+# Create median
+total_rows_join_take_off_cum_sum <- total_rows_join_take_off_cum %>% 
+  group_by(disease, day, surv_pgrm, contact_name) %>% 
+  summarize(med_num_inf_pigs = median(num_inf_pigs),
+            max_num_inf_pigs = max(num_inf_pigs),
+            med_cum_inf = median(cum_num_inf),
+            max_cum_inf = max(cum_num_inf)) %>% 
+  ungroup()
+
+save(total_rows_join_take_off_cum_sum, file=paste0(start_date_lim, "contact_take_off_cum_sum.RData"))
+
+# For proportions of routes of transmission
+contact_prop_take_off <- total_rows_join_take_off_cum_sum %>% 
+  group_by(disease, day, surv_pgrm) %>% 
+  mutate(daily_total_cum_inf_pigs = sum(med_cum_inf)) %>% 
+  ungroup()
+
+contact_prop_take_off <- contact_prop_take_off %>% 
+  mutate(prop_cum_inf = med_cum_inf/daily_total_cum_inf_pigs,
+         prop_cum_inf = ifelse(is.na(prop_cum_inf), 0, prop_cum_inf))
+
+save(contact_prop_take_off, file=paste0(start_date_lim, "contact_prop_take_off.RData"))
+
+# EXCLUDE WITHIN FARM data or proportions of routes of transmission
+
+contact_prop_take_off_lim <- total_rows_join_take_off_cum_sum %>% 
+  filter(contact_name != "Within Farm") %>% 
+  group_by(disease, day, surv_pgrm) %>% 
+  mutate(daily_total_cum_inf_pigs = sum(med_cum_inf)) %>% 
+  ungroup()
+
+contact_prop_take_off_lim <- contact_prop_take_off_lim %>% 
+  mutate(prop_cum_inf = med_cum_inf/daily_total_cum_inf_pigs,
+         prop_cum_inf = ifelse(is.na(prop_cum_inf), 0, prop_cum_inf))
+
+save(contact_prop_take_off_lim, file=paste0(start_date_lim, "contact_prop_lim_take_off.RData"))
+

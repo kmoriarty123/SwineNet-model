@@ -1,4 +1,8 @@
-# Functions for summarize_data_per_disease
+#############################################################
+## title: "Functions for summarize_data_per_disease"
+## author : Kathleen Moriarty
+## date_created : 08.04.2022
+#############################################################
 
 # Prepares the general compartment DF (name columns, add cumulative columns)
 prep_compart_files <- function(tmp_compart_df, 
@@ -39,8 +43,8 @@ prep_compart_grp <- function(surv_pgrm_name,
                              tmp_compart_df,
                              all_compart_data_sum){
   
-  # summarize median and iqr for each seed group
-  tmp_compart_df_grp_seed <- tmp_compart_df %>% 
+  # summarize median and iqr for each date
+  tmp_compart_df_grp_date <- tmp_compart_df %>% 
     group_by(date) %>%
     select(-c(num_run)) %>% # remove num_run
     #summarize(med_farm_count = median(farm_count, na.rm = TRUE))
@@ -53,11 +57,11 @@ prep_compart_grp <- function(surv_pgrm_name,
   
   
   # set surv_prgrm_name
-  tmp_compart_df_grp_seed$surv_pgrm = surv_pgrm_name
-  tmp_compart_df_grp_seed$surv_type = surv_type
+  tmp_compart_df_grp_date$surv_pgrm = surv_pgrm_name
+  tmp_compart_df_grp_date$surv_type = surv_type
   
   # bind rows to all dataframe
-  all_compart_data_sum <- rbind(all_compart_data_sum, tmp_compart_df_grp_seed)
+  all_compart_data_sum <- rbind(all_compart_data_sum, tmp_compart_df_grp_date)
   
   return(all_compart_data_sum)
 }
@@ -90,16 +94,20 @@ prep_first_detect <- function(surv_pgrm_name,
   tmp_first_detect_all$surv_pgrm = surv_pgrm_name
   tmp_first_detect_all$surv_type = surv_type
   
+  print(surv_pgrm_name)
+  print(surv_type)
+  print(nrow(tmp_first_detect_all))
+  
   all_first_detect <- rbind(all_first_detect, tmp_first_detect_all)
   
   
   return(all_first_detect)
 }
 
-# Determine the proportion of runs that had more than 20 farms infected for the
+# Determine the proportion of runs that had more than 10 farms infected for the
 # given period
 # Determine the proportion of runs for which disease "died out" 
-# meanding no new infections for the last 20 days
+# meanding no new infections for the last 10 days
 prep_prop_outbreak <- function(surv_pgrm_name,
                                surv_type,
                                tmp_compart_df,
@@ -139,9 +147,6 @@ prep_prop_outbreak <- function(surv_pgrm_name,
             prop_under_10 = prop_farm_count_under_10$prop_under_10,
             prop_no_new_inf_20 = prop_no_new_inf_20$prop_no_20)
   
-  print(surv_type)
-  print(surv_pgrm_name)
-  print(nrow(all_outbreak_data))
   return(all_outbreak_data)
 }
 

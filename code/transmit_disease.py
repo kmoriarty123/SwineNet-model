@@ -29,7 +29,8 @@ def update_spread_within_farms(
 
         # Store information of all entries with at least 1 infected, 1 exposed, or 1 deceased pig
         if sim_data[idx, gs.INF] > 0 or sim_data[idx, gs.ASY] > 0 or \
-                sim_data[idx, gs.EX] > 0 or sim_data[idx, gs.EXS] > 0 or sim_data[idx, gs.REM] > 0 or sim_data[idx, gs.REC] > 0 or \
+                sim_data[idx, gs.EX] > 0 or sim_data[idx, gs.EXS] > 0 or \
+                sim_data[idx, gs.REM] > 0 or sim_data[idx, gs.REC] > 0 or \
                 sim_data[idx, gs.ISO] or sim_data[idx, gs.QUA_S] or sim_data[idx, gs.QUA_E] or sim_data[idx, gs.QUA_A]:
 
             infected_farm_list.append([curr_date, idx,
@@ -40,18 +41,20 @@ def update_spread_within_farms(
                                        sim_data[idx, gs.ISO],
                                        sim_data[idx, gs.QUA_S], sim_data[idx, gs.QUA_E], sim_data[idx, gs.QUA_A]])
 
-            # Select all entries with at least 1 infected (symp or asymp) or exposed pig
-            if sim_data[idx, gs.INF] > 0 or sim_data[idx, gs.EX] > 0 or sim_data[idx, gs.EXS] > 0 or sim_data[idx, gs.ASY] > 0:
+            # Select all entries with at least 1 infectious (symp or asymp) or exposed pig
+            if sim_data[idx, gs.EX] > 0 or sim_data[idx, gs.EXS] > 0 or \
+                    sim_data[idx, gs.INF] > 0 or sim_data[idx, gs.ASY] > 0:
                 # Call function to run spread within the farm
-                new_su, new_sus, new_exp, new_exps, new_inf, new_asy, new_rem, new_rec, e_to_ai = run_farm_spread(sim_data[idx, gs.SU],
-                                                                                                sim_data[idx, gs.SUS],
-                                                                                                sim_data[idx, gs.EX],
-                                                                                                sim_data[idx, gs.EXS],
-                                                                                                sim_data[idx, gs.INF],
-                                                                                                sim_data[idx, gs.ASY],
-                                                                                                sim_data[idx, gs.REM],
-                                                                                                sim_data[idx, gs.REC],
-                                                                                                ds)
+                new_su, new_sus, new_exp, new_exps, new_inf, new_asy, new_rem, new_rec, e_to_ai = run_farm_spread(
+                    sim_data[idx, gs.SU],
+                    sim_data[idx, gs.SUS],
+                    sim_data[idx, gs.EX],
+                    sim_data[idx, gs.EXS],
+                    sim_data[idx, gs.INF],
+                    sim_data[idx, gs.ASY],
+                    sim_data[idx, gs.REM],
+                    sim_data[idx, gs.REC],
+                    ds)
                 # Update new values
                 sim_data[idx, gs.SU] = new_su
                 sim_data[idx, gs.SUS] = new_sus
@@ -70,39 +73,47 @@ def update_spread_within_farms(
 
 # Define the simulation function for PRRS
 def run_farm_spread(sus, sus_s, exp, exp_s, inf, asy, rem, rec, ds):
-    # Initial number of infected and recovered individuals, I0 and D0.
+    # Initial number of infected and recovered individuals
     S0, SS0, E0, ES0, I0, A0, RM0, RC0 = sus, sus_s, exp, exp_s, inf, asy, rem, rec
 
     # Total pig population on the farm, N.
-    N = S0 + SS0 + E0 + ES0 + I0 + A0 + RC0  # Include IA0: these are immune pigs
+    N = S0 + SS0 + E0 + ES0 + I0 + A0 + RC0
 
     # Calculate expected values and probabilities
+    # Note difference from RHO and THETA
     exp_S_to_E = gs.TAU * ds.BET * S0 * (I0 + ds.KAP * A0) / N
     exp_SS_to_ES = gs.TAU * ds.BET * SS0 * (I0 + ds.KAP * A0) / N
-    prob_E_to_AI = 1 - np.exp(-ds.SIG * gs.TAU)
-    prob_ES_to_AI = 1 - np.exp(-ds.SIG * gs.TAU)
-    prob_I_to_RMRC = 1 - np.exp(-ds.DEL * gs.TAU)
+    prob_E_to_IA = 1 - np.exp(-ds.SIG * gs.TAU)
+    prob_ES_to_IA = 1 - np.exp(-ds.SIG * gs.TAU)
+    prob_I_to_R = 1 - np.exp(-ds.DEL * gs.TAU)
     prob_A_to_RC = 1 - np.exp(-ds.GAM * gs.TAU)
 
     # Calculate the random draws
     S_to_E = np.random.poisson(exp_S_to_E)
     SS_to_ES = np.random.poisson(exp_SS_to_ES)
-    E_to_AI = np.random.binomial(E0, prob_E_to_AI)
-    ES_to_AI = np.random.binomial(ES0, prob_ES_to_AI)
-    I_to_RMRC = np.random.binomial(I0, prob_I_to_RMRC)
+    E_to_IA = np.random.binomial(E0, prob_E_to_IA)
+    ES_to_IA = np.random.binomial(ES0, prob_ES_to_IA)
+    I_to_R = np.random.binomial(I0, prob_I_to_R)
     A_to_RC = np.random.binomial(A0, prob_A_to_RC)
 
-    # Note difference from ASF (RHO is proportion of those chosen for infectivity go to asymptomatic)
-    S = S0 - min(S_to_E, S0)  # ensure S is never negative
-    SS = SS0 - min(SS_to_ES, SS0)  # ensure S is never negative
-    E = E0 + min(S_to_E, S0) - E_to_AI
-    ES = ES0 + min(SS_to_ES, SS0) - ES_to_AI
-    I = I0 + np.round((1 - ds.RHO) * E_to_AI) - I_to_RMRC + np.round((1 - ds.RHO_S) * ES_to_AI)
-    A = A0 + np.round(ds.RHO * E_to_AI) - A_to_RC + np.round(ds.RHO_S * ES_to_AI)
-    RM = RM0 + np.round(ds.THE * I_to_RMRC)
-    RC = RC0 + A_to_RC + np.round((1 - ds.THE) * I_to_RMRC)
+    # Draws for the E to I and E to A split and I to RC and I to RM split
+    E_to_A = np.random.binomial(E_to_IA, ds.RHO)
+    E_to_I = E_to_IA - E_to_A
+    ES_to_A = np.random.binomial(ES_to_IA, ds.RHO_S)
+    ES_to_I = ES_to_IA - ES_to_A
+    I_to_RM = np.random.binomial(I_to_R, ds.THE)
+    I_to_RC = I_to_R - I_to_RM
 
-    return S, SS, E, ES, I, A, RM, RC, E_to_AI
+    S = S0 - min(S_to_E, S0)  # ensure S is never negative
+    SS = SS0 - min(SS_to_ES, SS0)  # ensure SS is never negative
+    E = E0 + min(S_to_E, S0) - E_to_I - E_to_A
+    ES = ES0 + min(SS_to_ES, SS0) - ES_to_I - ES_to_A
+    I = I0 + E_to_I + ES_to_I - I_to_RM - I_to_RC
+    A = A0 + E_to_A + ES_to_A - A_to_RC
+    RM = RM0 + I_to_RM
+    RC = RC0 + A_to_RC + I_to_RC
+
+    return S, SS, E, ES, I, A, RM, RC, E_to_A + E_to_I + ES_to_A + ES_to_I
 
 
 def update_spread_between_farms(tour_arr: np.array,
@@ -115,9 +126,8 @@ def update_spread_between_farms(tour_arr: np.array,
                                 infected_pig_list: list,
                                 ds) -> np.array:
     # grab the infected farm indices
-    infected_farm_idx = np.where((sim_data[:, gs.INF] > 0) | (sim_data[:, gs.ASY] > 0))[0]
-    # testing phi
-    #print("My phi value: ", ds.PHI)
+    infected_farm_idx = np.where((sim_data[:, gs.INF] > 0) | (sim_data[:, gs.ASY] > 0) |
+                                 (sim_data[:, gs.EX] > 0) | (sim_data[:, gs.EXS] > 0))[0]
 
     # Grab direct transports that are on current_date
     curr_tours = direct_trans_df[(direct_trans_df['event_date'] == curr_date)].to_numpy()
@@ -134,13 +144,21 @@ def update_spread_between_farms(tour_arr: np.array,
 
         # Check to see if the infected farm has a tour
         if tour_arr[farm_idx, day_count] == 1:
-            print("found a tranport!")
-            # Grab row where infected farm transport occurs
+            #print("found a tranport!")
+            # Grab record of infected farm transport
             inf_farm_tour = curr_tours[np.where(curr_tours[:, gs.SRC] == farm_idx)[0]][0]
 
             # Get index of destination farm
             dest_tvd_id = inf_farm_tour[gs.DEST]
-            # print("inf_farm_tour:", inf_farm_tour, flush=True)
+            # Calculate the number of exposed (non sow farm) pigs sent on the tour
+            tran_exp_pigs = min(sim_data[farm_idx, gs.EX],
+                                np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
+                                                  sim_data[farm_idx, gs.EX] / N))
+
+            # Calculate the number of exposed (sow farm) pigs sent on the tour
+            tran_exp_pigs_sow = min(sim_data[farm_idx, gs.EXS],
+                                    np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
+                                                      sim_data[farm_idx, gs.EXS] / N))
 
             # Calculate the number of infected pigs sent on the tour
             tran_inf_pigs = min(sim_data[farm_idx, gs.INF],
@@ -152,12 +170,24 @@ def update_spread_between_farms(tour_arr: np.array,
                                      np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
                                                        sim_data[farm_idx, gs.ASY] / N))
 
-            # print("trans inf pigs: ", tran_inf_pigs, flush=True)
+            if tran_exp_pigs > 0:
+                infected_pig_list.append([curr_date, 'd', tran_exp_pigs])
+
+                # Update infected pig count for infected farm and destination farm
+                sim_data[farm_idx, gs.EX] = sim_data[farm_idx, gs.EX] - tran_exp_pigs
+                sim_data[dest_tvd_id, gs.EX] = sim_data[dest_tvd_id, gs.EX] + tran_exp_pigs
+
+            if tran_exp_pigs_sow > 0:
+                infected_pig_list.append([curr_date, 'd', tran_exp_pigs_sow])
+
+                # Update infected pig count for infected farm and destination farm
+                sim_data[farm_idx, gs.EXS] = sim_data[farm_idx, gs.EXS] - tran_exp_pigs_sow
+                sim_data[dest_tvd_id, gs.EXS] = sim_data[dest_tvd_id, gs.EXS] + tran_exp_pigs_sow
 
             if tran_inf_pigs > 0:
                 infected_pig_list.append([curr_date, 'd', tran_inf_pigs])
 
-                # Update infected pig count for infected farm and destination farm (ensure it isn't negative)
+                # Update infected pig count for infected farm and destination farm
                 sim_data[farm_idx, gs.INF] = sim_data[farm_idx, gs.INF] - tran_inf_pigs
                 sim_data[dest_tvd_id, gs.INF] = sim_data[dest_tvd_id, gs.INF] + tran_inf_pigs
 
@@ -169,7 +199,8 @@ def update_spread_between_farms(tour_arr: np.array,
                 sim_data[dest_tvd_id, gs.ASY] = sim_data[dest_tvd_id, gs.ASY] + tran_inf_pigs_asym
 
             # If an infected pig is on the truck, check for other spreading routes
-            if tran_inf_pigs_asym > 0 or tran_inf_pigs > 0:
+            if tran_exp_pigs > 0 or tran_exp_pigs_sow > 0 or tran_inf_pigs_asym > 0 or tran_inf_pigs > 0:
+
                 # Check for indirect contact types
                 indirect_contacts = other_trans_df[(other_trans_df['event_date'] == curr_date) &
                                                    (other_trans_df['source_idx'] == farm_idx)].to_numpy()
@@ -188,10 +219,10 @@ def update_spread_between_farms(tour_arr: np.array,
                             pigs_2_dest = curr_tour[gs.T_NPIGS]
 
                             # Calculate the number of pigs infected
-                            pig_inf_pigs = np.random.poisson(
-                                gs.TAU * ((tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) / inf_farm_tour[gs.T_NPIGS]) *
-                                ds.PHI *
-                                pigs_2_dest)
+                            pig_inf_pigs = np.random.poisson(gs.TAU *
+                                                             (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) *
+                                                             ds.PHI *
+                                                             pigs_2_dest)
                             # print("p2p: ", pig_inf_pigs, flush=True)
                             infected_pig_list.append([curr_date, 't', pig_inf_pigs])
 
@@ -206,10 +237,10 @@ def update_spread_between_farms(tour_arr: np.array,
                             pigs_2_dest = curr_tour[gs.T_NPIGS]
 
                             # Calculate the number of pigs infected by fomites from uncleaned truck
-                            fom_inf_pigs = np.random.poisson(
-                                gs.TAU * (tran_inf_pigs +
-                                          ds.KAP * tran_inf_pigs_asym) / inf_farm_tour[gs.T_NPIGS] *
-                                          ds.PSI * pigs_2_dest)
+                            fom_inf_pigs = np.random.poisson(gs.TAU *
+                                                             (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) *
+                                                             ds.PSI *
+                                                             pigs_2_dest)
 
                             # print("fomites: ", fom_inf_pigs, flush=True)
                             infected_pig_list.append([curr_date, 'i', fom_inf_pigs])
@@ -223,19 +254,19 @@ def update_spread_between_farms(tour_arr: np.array,
 
                             # Number of pigs on the destination farm
                             dest_num_pigs = sim_data[dest_idx, gs.SU]
-                            dest_num_pigs_sow = sim_data[dest_idx, gs.SUS] # number of sows on destination farm
+                            dest_num_pigs_sow = sim_data[dest_idx, gs.SUS]  # number of sows on destination farm
 
                             # Calculate the number of pigs indirectly infected
                             ind_inf_pigs = min(sim_data[dest_idx, gs.SU],
                                                np.random.poisson(gs.TAU *
-                                                                 (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) /
-                                                                 inf_farm_tour[gs.T_NPIGS] *
-                                                                 ds.ETA * dest_num_pigs))
+                                                                 (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) *
+                                                                 ds.ETA *
+                                                                 dest_num_pigs))
                             ind_inf_pigs_sow = min(sim_data[dest_idx, gs.SUS],
-                                               np.random.poisson(gs.TAU *
-                                                                 (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) /
-                                                                 inf_farm_tour[gs.T_NPIGS] *
-                                                                 ds.ETA * dest_num_pigs_sow))
+                                                   np.random.poisson(gs.TAU *
+                                                                     (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) *
+                                                                     ds.ETA *
+                                                                     dest_num_pigs_sow))
 
                             # print("ind inf pigs: ", ind_inf_pigs, flush=True)
                             infected_pig_list.append([curr_date, 'e', ind_inf_pigs + ind_inf_pigs_sow])
@@ -249,8 +280,7 @@ def update_spread_between_farms(tour_arr: np.array,
                                 sim_data[dest_idx, gs.EXS] = sim_data[dest_idx, gs.EXS] + ind_inf_pigs_sow
                                 sim_data[dest_idx, gs.SUS] = sim_data[dest_idx, gs.SUS] - ind_inf_pigs_sow
 
-
-# Geographic Network Spread
+        # Geographic Network Spread
 
         # Find any entries for infected farm in the geographic network
         geo_inf_arr = geo_data[np.where(geo_data[:, gs.G_SRC] == farm_idx)[0]]
@@ -262,15 +292,15 @@ def update_spread_between_farms(tour_arr: np.array,
 
             # calculate number of pigs infected thru local spread
             geo_inf_pigs = min(sim_data[dest_geo_idx, gs.SU],
-                               np.random.poisson(gs.TAU * sim_data[dest_geo_idx, gs.SU] *
-                                                 (sim_data[farm_idx, gs.INF] + ds.KAP * sim_data[
-                                                     farm_idx, gs.ASY]) / N *
+                               np.random.poisson(gs.TAU *
+                                                 sim_data[dest_geo_idx, gs.SU] *
+                                                 (sim_data[farm_idx, gs.INF] + ds.KAP * sim_data[farm_idx, gs.ASY]) *
                                                  ds.OME))
             geo_inf_pigs_sows = min(sim_data[dest_geo_idx, gs.SUS],
-                               np.random.poisson(gs.TAU * sim_data[dest_geo_idx, gs.SUS] *
-                                                 (sim_data[farm_idx, gs.INF] + ds.KAP * sim_data[
-                                                     farm_idx, gs.ASY]) / N *
-                                                 ds.OME))
+                                    np.random.poisson(gs.TAU *
+                                                      sim_data[dest_geo_idx, gs.SUS] *
+                                                      (sim_data[farm_idx, gs.INF] + ds.KAP * sim_data[farm_idx, gs.ASY]) *
+                                                      ds.OME))
 
             if geo_inf_pigs > 0 or geo_inf_pigs_sows > 0:
 

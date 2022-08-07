@@ -21,9 +21,9 @@ IDX_WGHT_PRRS_2, IDX_WGHT_ASF_2, IDX_WGHT_APP_2  = 1, 5, 6, 7, 8, 9, 10, 11, 12,
 
 # Indices for transports
 # Source, destination, data of transport, num of pigs transported, contact_type (d, t, i, p, f)
-SRC, DEST, DATE, T_NPIGS, CNTCT = 0, 1, 2, 3, 4
+SRC, DEST, DATE, T_NPIGS, CNTCT, TOUR_ID = 0, 1, 2, 3, 4, 5
 column_names_direct = ['source_idx', 'dest_idx', 'event_date', 'n_pigs']
-column_names_tour = ['source_idx', 'dest_idx', 'event_date', 'n_pigs', 'contact_type']
+column_names_tour = ['source_idx', 'dest_idx', 'event_date', 'n_pigs', 'contact_type', 'tour_id']
 
 # Indices for tour with surveillance
 # INSPCT: indicator to show that the transport will be inspected at the slaughterhouse

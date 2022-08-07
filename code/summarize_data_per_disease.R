@@ -17,10 +17,10 @@ source("../code/summarize_data_per_disease_functions.R")
 
 # list disease
 list_disease = c("ASF", "APP", "PRRS")
-list_start_date = c('2014_1_1', '2014_5_1', '2019_1_1', '2019_5_1')
-
-#list_disease = c("APP")
-#list_start_date = c('2014_1_1')
+#list_disease = c("ASF")
+#list_disease = c("APP", "PRRS")
+#list_start_date = c('2014_1_1', '2014_5_1', '2019_1_1', '2019_5_1')
+list_start_date = c('2019_5_1')
 
 # Preparing compartment txt files
 compart_colnames <- c('date', 'farm_count', 
@@ -29,8 +29,10 @@ compart_colnames <- c('date', 'farm_count',
                       'quarantined_s', 'quarantined_e','quarantined_a',
                       'num_run')
 
+#disease = 'ASF'
+#start_date = '2019_5_1'
 
-# Loop through all diseases
+# Loop through all diseases, start dates and preprocess compartment txts
 for(disease in list_disease){
   for(start_date in list_start_date){
     print(disease)
@@ -59,14 +61,11 @@ for(disease in list_disease){
     
     
     
-    # Loop through all compartment files for each surveillance program and run above
+    # Loop through all compartment files for each surveillance program  and
+    # preprocess the data 
     # functions
-    
+    i=1
     for (i in 1:(length(list_of_compart_files))){
-      # read in file
-      tmp_compart_df <- read.table(list_of_compart_files[i], 
-                                   header = FALSE, 
-                                   sep = ",")
       
       # set name of surveillance program
       file_name_strings <- stringr::str_split(list_of_compart_files[i], "/")
@@ -74,14 +73,24 @@ for(disease in list_disease){
       surv_type <- file_name_strings[[1]][3]
       surv_pgrm_name <- file_name_strings[[1]][4]
       
-      print(surv_pgrm_name)
+      #KBM delete later
+      #if(surv_pgrm_name %in% c('psi_factor_50.0', 'psi_factor_200.0',
+      #                         'phi_factor_50.0', 'phi_factor_200.0',
+      #                         'eta_factor_50.0', 'eta_factor_200.0')){
+      #  next
+      #}
+      # read in file
+      tmp_compart_df <- read.table(list_of_compart_files[i], 
+                                   header = FALSE, 
+                                   sep = ",")
+      
       
       # exclude all of the files that are sensitivity analysis of phi, psi, index case
-      if (surv_type == "no_surv"){
-        if(surv_pgrm_name != "phi_factor_1.0_psi_factor_1.0"){
-          next
-        }
-      }
+      #if (surv_type == "no_surv"){
+      #  if(surv_pgrm_name != "phi_factor_1.0_psi_factor_1.0"){
+      #    next
+      #  }
+      #}
       
       # call function to prepare df
       tmp_compart_df <- prep_compart_files(tmp_compart_df, 
@@ -110,12 +119,9 @@ for(disease in list_disease){
                                             tmp_compart_df,
                                             all_outbreak_data)
       
-      #print(all_outbreak_data)
       
     }
     
-    print(nrow(all_outbreak_data))
-    print(nrow(all_first_detect))
     # Save all the dfs
     save(all_compart_data, file = paste0(folder, "/all_compartment.RData"))
     save(all_compart_data_sum, file = paste0(folder, "/all_compart_data_sum.RData"))

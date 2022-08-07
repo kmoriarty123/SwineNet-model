@@ -16,12 +16,15 @@ def update_spread_within_farms_surv(
         infected_pig_list: list,
         mortality_rate_inc: float,
         morbidity_rate: float,
+        farmer_prop: float,
         farmer_alert_dict: dict,
         farmer_alert_arr: np.array,
+        farmer_no_init: np.array,
         ds) -> np.array:
     for idx in np.arange(0, sim_data.shape[0]):
 
-        # Store information of all entries with at least 1 infected, 1 exposed, or 1 deceased pig (or isolated/quarantined)
+        # Store information of all entries with at least 1 infected, 1 exposed, or 1 deceased pig (or
+        # isolated/quarantined)
         if sim_data[idx, gs.INF] > 0 or sim_data[idx, gs.ASY] > 0 or \
                 sim_data[idx, gs.EX] > 0 or sim_data[idx, gs.EXS] > 0 or sim_data[idx, gs.REM] > 0 or sim_data[
             idx, gs.REC] > 0 or \
@@ -61,7 +64,7 @@ def update_spread_within_farms_surv(
                 infected_pig_list.append([curr_date, 'f', e_to_ai])
 
                 # Check if mortality rate increase is more than surveillance threshold
-                if sim_data[idx, gs.REM] > 0 and not farmer_alert_arr[idx]:
+                if sim_data[idx, gs.REM] > 0 and not farmer_alert_arr[idx] and not farmer_no_init[idx]:
                     num_tot_pigs = sim_data[idx, gs.SU] + sim_data[idx, gs.EX] + \
                                    sim_data[idx, gs.SUS] + sim_data[idx, gs.EXS] + \
                                    sim_data[idx, gs.ASY] + sim_data[idx, gs.INF] + \
@@ -71,20 +74,25 @@ def update_spread_within_farms_surv(
 
                     # if proportion is greater than surveillance threshold, then add farm to "farmer alerted" field
                     if prop_dec > (mortality_rate_inc + gs.INIT_FARM_MORT):
-                        # print("prop_dec: " + str(prop_dec))
 
-                        # set testing_date to be farmer_surv_day_delay number of days after reaching threshold
-                        test_date = curr_date + datetime.timedelta(days=gs.FARM_SURV_DAY_DELAY)
-                        if test_date in farmer_alert_dict:
-                            farmer_alert_dict[test_date].append(idx)
+                        # randomly select farms that will not initiate surveillance based on param farmer_prop
+                        r_int = np.random.randint(1,10)
+
+                        if r_int > (farmer_prop * 10): # the random number draw leads to farmer inaction
+                            farmer_no_init[idx] = True
                         else:
-                            farmer_alert_dict[test_date] = [idx]
+                            # set testing_date to be farmer_surv_day_delay number of days after reaching threshold
+                            test_date = curr_date + datetime.timedelta(days=gs.FARM_SURV_DAY_DELAY)
+                            if test_date in farmer_alert_dict:
+                                farmer_alert_dict[test_date].append(idx)
+                            else:
+                                farmer_alert_dict[test_date] = [idx]
 
-                        # set flag of farmer_alert in array to TRUE so I don't keep adding the farm to the dictionary
-                        farmer_alert_arr[idx] = True
+                            # set flag of farmer_alert in array to TRUE so I don't keep adding the farm to the dictionary
+                            farmer_alert_arr[idx] = True
 
                 # Check for morbidity proportion of symptomatic is more than surveillance threshold
-                if sim_data[idx, gs.INF] > 0 and not farmer_alert_arr[idx]:
+                if sim_data[idx, gs.INF] > 0 and not farmer_alert_arr[idx] and not farmer_no_init[idx]:
                     num_tot_pigs = sim_data[idx, gs.SU] + sim_data[idx, gs.EX] + \
                                    sim_data[idx, gs.SUS] + sim_data[idx, gs.EXS] + \
                                    sim_data[idx, gs.ASY] + sim_data[idx, gs.INF] + \
@@ -95,17 +103,24 @@ def update_spread_within_farms_surv(
                     # if proportion is greater than surveillance threshold, then add farm to "farmer alerted" field
                     if prop_inf > morbidity_rate:
                         # print("prop_inf: " + str(prop_inf))
-                        # set testing_date to be farmer_surv_day_delay number of days after reaching threshold
-                        test_date = curr_date + datetime.timedelta(days=gs.FARM_SURV_DAY_DELAY)
-                        if test_date in farmer_alert_dict:
-                            farmer_alert_dict[test_date].append(idx)
+
+                        # randomly select farms that will not initiate surveillance based on param farmer_prop
+                        r_int = np.random.randint(1, 10)  # returns a list so need the first element
+
+                        if r_int > (farmer_prop * 10):  # the random number draw leads to farmer inaction
+                            farmer_no_init[idx] = True
                         else:
-                            farmer_alert_dict[test_date] = [idx]
+                            # set testing_date to be farmer_surv_day_delay number of days after reaching threshold
+                            test_date = curr_date + datetime.timedelta(days=gs.FARM_SURV_DAY_DELAY)
+                            if test_date in farmer_alert_dict:
+                                farmer_alert_dict[test_date].append(idx)
+                            else:
+                                farmer_alert_dict[test_date] = [idx]
 
-                        # set flag of farmer_alert in array to TRUE so I don't keep adding the farm to the dictionary
-                        farmer_alert_arr[idx] = True
+                            # set flag of farmer_alert in array to TRUE so I don't keep adding the farm to the dictionary
+                            farmer_alert_arr[idx] = True
 
-    return sim_data, infected_farm_list, infected_pig_list, farmer_alert_dict, farmer_alert_arr
+    return sim_data, infected_farm_list, infected_pig_list, farmer_alert_dict, farmer_alert_arr, farmer_no_init
 
 
 def deploy_farmer_surv(farmer_alert_dict,

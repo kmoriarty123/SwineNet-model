@@ -2,23 +2,25 @@
 
 Simple network simulation model
 """
-#import cli as ds
+# import cli as ds
 import random
 import datetime
 from random import choices
 import numpy as np
 import pandas as pd
-#from numpy import random
+# from numpy import random
 
 import global_setup as gs
 import transmit_disease as ts
-#import ASF_setup as ds
+
+
+# import ASF_setup as ds
 
 # To import global disease variables later
-#def global_imports(module_name, abbr):
+# def global_imports(module_name, abbr):
 #    globals()[abbr] = __import__(module_name)
 
-def create_slaughterhouse_list(
+def create_slaughterhouse_list_old(
         farm_list: list,
         curr_run: int,
         output_dir: str,
@@ -40,12 +42,41 @@ def create_slaughterhouse_list(
 
     # Save the info re index case to file
     print(f"slaughter_indices_list: {slaughter_indices_list}")
-    with open(output_dir + "slaughters_chosen_" + str(curr_run) + ".csv", 'w') as out_file:
+    with open(output_dir + "\slaughters_chosen_" + str(curr_run) + ".csv", 'w') as out_file:
         # f.write(f'{item}\n')
         # f.write(farm_to_save + "\n")
         out_file.write('\n'.join(map(str, slaughter_indices_list)))
 
     return slaughter_indices_list
+
+
+def create_slaughterhouse_list(
+        farm_dict: dict,
+        num_slaughter: int) -> list:
+    """ Pick num_slaughter slaughterhouses at random to be surveilled
+
+    :return: Index of slaughterhouses that were chosen for surveillance
+    """
+    if num_slaughter == 9:
+        slaughter_tvd_list = [1856446, 2030180, 1836608, 1285666, 1620900, 1407112, 1285673, 2136684, 1856460]
+    elif num_slaughter == 18:
+        slaughter_tvd_list = [1856446, 2030180, 1836608, 1285666, 1620900, 1407112, 1285673, 2136684, 1856460,
+                              1621235, 1851380, 1621259, 1621174, 1176186, 1221688, 1620870, 1621037, 1411461]
+    elif num_slaughter == 36:
+        slaughter_tvd_list = [1856446, 2030180, 1836608, 1285666, 1620900, 1407112, 1285673, 2136684, 1856460,
+                              1621235, 1851380, 1621259, 1621174, 1176186, 1221688, 1620870, 1621037, 1411461,
+                              1944167, 1620948, 1462968, 1621204, 1620535, 1298277, 1621150, 1856477, 1942378,
+                              1836776, 1855173, 1833232, 2195681, 1863598, 1621082, 1176018, 1016895, 1911268]
+
+    slaughter_all_indices = []
+
+    for tvd in slaughter_tvd_list:
+        if tvd in farm_dict:
+            # print('found a match: ' + str(tvd))#+ ', ' + str(farm_dict[tvd]))
+            # print('here')
+            slaughter_all_indices.append(farm_dict[tvd])
+
+    return slaughter_all_indices
 
 
 def find_transports_to_slaughter(slaughter_indices_list: list,
@@ -56,10 +87,8 @@ def find_transports_to_slaughter(slaughter_indices_list: list,
 
         :return: direct_trans_df with additional column for tagged for inspection
     """
-
     # Subset for all transports to that slaughterhouse
     slaughter_transports_df = direct_trans_df[direct_trans_df['dest_idx'].isin(slaughter_indices_list)]
-
     # Start of the active surveillance program
     inspect_start = datetime.date.fromisoformat(str(start_year) + "-" + gs.inspection_start_date)
     inspect_end = datetime.date.fromisoformat(str(start_year) + "-" + gs.inspection_end_date)
@@ -106,7 +135,8 @@ def update_spread_between_farms_slaught_surv(tour_arr: np.array,
                                              control: str,
                                              ds) -> np.array:
     # grab the infected farm indices
-    infected_farm_idx = np.where((sim_data[:, gs.INF] > 0) | (sim_data[:, gs.ASY] > 0))[0]
+    infected_farm_idx = np.where((sim_data[:, gs.INF] > 0) | (sim_data[:, gs.ASY] > 0) |
+                                 (sim_data[:, gs.EX] > 0) | (sim_data[:, gs.EXS] > 0))[0]
 
     # Grab direct transports that are on current_date
     curr_tours = direct_trans_df[(direct_trans_df['event_date'] == curr_date)].to_numpy()
@@ -123,7 +153,7 @@ def update_spread_between_farms_slaught_surv(tour_arr: np.array,
 
         # Check to see if the infected farm has a tour
         if tour_arr[farm_idx, day_count] == 1:
-            print("FOUND A TOUR!")
+            # print("FOUND A TOUR!")
             # Grab row where infected farm transport occurs
             inf_farm_tour = curr_tours[np.where(curr_tours[:, gs.SRC] == farm_idx)[0]][0]
 
@@ -131,17 +161,44 @@ def update_spread_between_farms_slaught_surv(tour_arr: np.array,
             dest_tvd_id = inf_farm_tour[gs.DEST]
             # print("inf_farm_tour:", inf_farm_tour, flush=True)
 
+            # Calculate the number of exposed (sow farm) pigs sent on the tour
+            tran_exp_pigs = min(sim_data[farm_idx, gs.EX],
+                                np.random.poisson(gs.TAU *
+                                                  inf_farm_tour[gs.T_NPIGS] *
+                                                  sim_data[farm_idx, gs.EX] / N))
+
+            # Calculate the number of exposed (sow farm) pigs sent on the tour
+            tran_exp_pigs_sow = min(sim_data[farm_idx, gs.EXS],
+                                    np.random.poisson(gs.TAU *
+                                                      inf_farm_tour[gs.T_NPIGS] *
+                                                      sim_data[farm_idx, gs.EXS] / N))
+
             # Calculate the number of infected pigs sent on the tour
             tran_inf_pigs = min(sim_data[farm_idx, gs.INF],
-                                np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
+                                np.random.poisson(gs.TAU *
+                                                  inf_farm_tour[gs.T_NPIGS] *
                                                   sim_data[farm_idx, gs.INF] / N))
 
             # Calculate the number of asymptomatic infected pigs sent on the tour
             tran_inf_pigs_asym = min(sim_data[farm_idx, gs.ASY],
-                                     np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
+                                     np.random.poisson(gs.TAU *
+                                                       inf_farm_tour[gs.T_NPIGS] *
                                                        sim_data[farm_idx, gs.ASY] / N))
 
-            # print("trans inf pigs: ", tran_inf_pigs, flush=True)
+            # If an exposed/infected pig is picked for the tour, update the compartments
+            if tran_exp_pigs > 0:
+                infected_pig_list.append([curr_date, 'd', tran_exp_pigs])
+
+                # Update infected pig count for infected farm and destination farm
+                sim_data[farm_idx, gs.EX] = sim_data[farm_idx, gs.EX] - tran_exp_pigs
+                sim_data[dest_tvd_id, gs.EX] = sim_data[dest_tvd_id, gs.EX] + tran_exp_pigs
+
+            if tran_exp_pigs_sow > 0:
+                infected_pig_list.append([curr_date, 'd', tran_exp_pigs_sow])
+
+                # Update infected pig count for infected farm and destination farm
+                sim_data[farm_idx, gs.EXS] = sim_data[farm_idx, gs.EXS] - tran_exp_pigs_sow
+                sim_data[dest_tvd_id, gs.EXS] = sim_data[dest_tvd_id, gs.EXS] + tran_exp_pigs_sow
 
             if tran_inf_pigs > 0:
                 infected_pig_list.append([curr_date, 'd', tran_inf_pigs])
@@ -157,10 +214,13 @@ def update_spread_between_farms_slaught_surv(tour_arr: np.array,
                 sim_data[farm_idx, gs.ASY] = sim_data[farm_idx, gs.ASY] - tran_inf_pigs_asym
                 sim_data[dest_tvd_id, gs.ASY] = sim_data[dest_tvd_id, gs.ASY] + tran_inf_pigs_asym
 
-            if tran_inf_pigs_asym > 0 or tran_inf_pigs > 0:
+            # If an infected pig is on the truck, check for other spreading routes
+            if tran_exp_pigs > 0 or tran_exp_pigs_sow > 0 or tran_inf_pigs_asym > 0 or tran_inf_pigs > 0:
                 # Check if the transport is inspected at slaughter
                 if inf_farm_tour[gs.INSPCT] == 1:
-                    num_discovered = inspect_herd_slaughter(inf_farm_tour[gs.T_NPIGS], tran_inf_pigs + tran_inf_pigs_asym)
+                    # Exposed pigs are not discovered at slaughter
+                    num_discovered = inspect_herd_slaughter(inf_farm_tour[gs.T_NPIGS],
+                                                            tran_inf_pigs + tran_inf_pigs_asym)
                     inspect_trans_list.append(np.append(inf_farm_tour, num_discovered))
 
                     # if pigs are detected at slaughterhouse, then isolate the infected pigs on the origin farm
@@ -168,8 +228,10 @@ def update_spread_between_farms_slaught_surv(tour_arr: np.array,
                     if num_discovered > 0:
 
                         num_discovered_farm = ts.inspect_herd_farm(sim_data[farm_idx, gs.INF],
-                                                                   sim_data[farm_idx, gs.SU] + sim_data[farm_idx, gs.SUS],
-                                                                   sim_data[farm_idx, gs.EX] + sim_data[farm_idx, gs.EXS],
+                                                                   sim_data[farm_idx, gs.SU] + sim_data[
+                                                                       farm_idx, gs.SUS],
+                                                                   sim_data[farm_idx, gs.EX] + sim_data[
+                                                                       farm_idx, gs.EXS],
                                                                    sim_data[farm_idx, gs.ASY])
 
                         # Move the detected pigs to "isolated" category
@@ -178,11 +240,13 @@ def update_spread_between_farms_slaught_surv(tour_arr: np.array,
 
                         if control == "quarantine":
                             # Move susceptible to quarantine
-                            sim_data[farm_idx, gs.QUA_S] = sim_data[farm_idx, gs.SU] + sim_data[farm_idx, gs.SUS] + sim_data[farm_idx, gs.QUA_S]
+                            sim_data[farm_idx, gs.QUA_S] = sim_data[farm_idx, gs.SU] + sim_data[farm_idx, gs.SUS] + \
+                                                           sim_data[farm_idx, gs.QUA_S]
                             sim_data[farm_idx, gs.SU] = 0
                             sim_data[farm_idx, gs.SUS] = 0
                             # Move exposed to quarantineE
-                            sim_data[farm_idx, gs.QUA_E] = sim_data[farm_idx, gs.EX] + sim_data[farm_idx, gs.EXS] + sim_data[farm_idx, gs.QUA_S]
+                            sim_data[farm_idx, gs.QUA_E] = sim_data[farm_idx, gs.EX] + sim_data[farm_idx, gs.EXS] + \
+                                                           sim_data[farm_idx, gs.QUA_S]
                             sim_data[farm_idx, gs.EX] = 0
                             sim_data[farm_idx, gs.EXS] = 0
                             # Move asymptomatic to quarantine_A
@@ -208,7 +272,8 @@ def update_spread_between_farms_slaught_surv(tour_arr: np.array,
 
                             # Calculate the number of pigs infected
                             pig_inf_pigs = np.random.poisson(
-                                gs.TAU * ((tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) / inf_farm_tour[gs.T_NPIGS]) *
+                                gs.TAU *
+                                (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) *
                                 ds.PHI *
                                 pigs_2_dest)
                             # print("p2p: ", pig_inf_pigs, flush=True)
@@ -226,8 +291,10 @@ def update_spread_between_farms_slaught_surv(tour_arr: np.array,
 
                             # Calculate the number of pigs infected by fomites (uncleaned truck)
                             fom_inf_pigs = np.random.poisson(
-                                gs.TAU * (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) / inf_farm_tour[gs.T_NPIGS] *
-                                ds.PSI * pigs_2_dest)
+                                gs.TAU *
+                                (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) *
+                                ds.PSI *
+                                pigs_2_dest)
 
                             # print("fomites: ", fom_inf_pigs, flush=True)
                             infected_pig_list.append([curr_date, 'i', fom_inf_pigs])
@@ -246,14 +313,14 @@ def update_spread_between_farms_slaught_surv(tour_arr: np.array,
                             # Calculate the number of pigs indirectly infected
                             ind_inf_pigs = min(sim_data[dest_idx, gs.SU],
                                                np.random.poisson(gs.TAU *
-                                                                 (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) /
-                                                                 inf_farm_tour[gs.T_NPIGS] *
-                                                                 ds.ETA * dest_num_pigs))
+                                                                 (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) *
+                                                                 ds.ETA *
+                                                                 dest_num_pigs))
                             ind_inf_pigs_sow = min(sim_data[dest_idx, gs.SUS],
                                                    np.random.poisson(gs.TAU *
-                                                                     (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) /
-                                                                     inf_farm_tour[gs.T_NPIGS] *
-                                                                     ds.ETA * dest_num_pigs_sow))
+                                                                     (tran_inf_pigs + ds.KAP * tran_inf_pigs_asym) *
+                                                                     ds.ETA *
+                                                                     dest_num_pigs_sow))
 
                             # print("ind inf pigs: ", ind_inf_pigs, flush=True)
                             infected_pig_list.append([curr_date, 'e', ind_inf_pigs + ind_inf_pigs_sow])
@@ -279,14 +346,15 @@ def update_spread_between_farms_slaught_surv(tour_arr: np.array,
 
             # calculate number of pigs infected thru local spread
             geo_inf_pigs = min(sim_data[dest_geo_idx, gs.SU],
-                               np.random.poisson(gs.TAU * sim_data[dest_geo_idx, gs.SU] *
-                                                 (sim_data[farm_idx, gs.INF] + ds.KAP * sim_data[
-                                                     farm_idx, gs.ASY]) / N *
+                               np.random.poisson(gs.TAU *
+                                                 sim_data[dest_geo_idx, gs.SU] *
+                                                 (sim_data[farm_idx, gs.INF] + ds.KAP * sim_data[farm_idx, gs.ASY]) *
                                                  ds.OME))
             geo_inf_pigs_sows = min(sim_data[dest_geo_idx, gs.SUS],
-                                    np.random.poisson(gs.TAU * sim_data[dest_geo_idx, gs.SUS] *
+                                    np.random.poisson(gs.TAU *
+                                                      sim_data[dest_geo_idx, gs.SUS] *
                                                       (sim_data[farm_idx, gs.INF] + ds.KAP * sim_data[
-                                                          farm_idx, gs.ASY]) / N *
+                                                          farm_idx, gs.ASY]) *
                                                       ds.OME))
 
             if geo_inf_pigs > 0 or geo_inf_pigs_sows > 0:

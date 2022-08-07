@@ -89,7 +89,7 @@ def create_tours():
 
         # read in farms that are only active during the start year and end year
         text = "\n".join(line for line in f)
-        tour_df = pd.read_csv(StringIO(text))
+        tour_df = pd.read_csv(StringIO(text), header=None)
 
     # Add the column headings
     tour_df.columns = header.split(',')

@@ -33,7 +33,7 @@ class Parameters:
 
     RHO_S = 0
 
-    PHI = 0.0325
-    PSI = 0.0119
-    ETA = 0.00572
-    OME = 0.00423
+    PHI = 0.0012
+    PSI = 0.0006
+    ETA = 0.00019
+    OME = 0.000027

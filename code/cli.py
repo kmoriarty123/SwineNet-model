@@ -1,7 +1,8 @@
 """Command Line Processing File.
 
 Interprets the arguments from the commandline,
-spreads disease on farms and between farms.
+calls the functions relating to spread of disease on farms and between farms dependent on parameter
+values.
 
 """
 
@@ -34,16 +35,22 @@ parser.add_argument('--phi_factor', type=float, default=1.0,
                     help="Factor of phi")
 parser.add_argument('--psi_factor', type=float, default=1.0,
                     help="Factor of psi")
-parser.add_argument('--idx_case_factor', type=int, default=3,
-                    help="Choose Risk Factor for Index Weight")
+parser.add_argument('--eta_factor', type=float, default=1.0,
+                    help="Factor of eta")
+parser.add_argument('--prop_tour_reduce', type=float, default=0.0,
+                    help='Reduction of contacts by 0.05 and 0.10 to see change in outcome')
+parser.add_argument('--idx_case_factor', type=int, default=2,
+                    help="Choose Risk Factor for Index Weight. Options: 1, 2, 3")
 parser.add_argument('--surveillance', type=str, default='none',
-                    help="Surveillance Program(s). Options: none, slaughter, farmer, network")
+                    help="Surveillance Program(s). Options: none, slaughter, farmer, network, sensitivity")
 parser.add_argument('--control', type=str, default='none',
                     help="Control Measures. Options: none, quarantine")
-parser.add_argument('--mort_rate_inc', type=float, default=1,
+parser.add_argument('--mort_rate_inc', type=float, default=1.0,
                     help="Mortality rate increase for farmer-based surveillance")
-parser.add_argument('--morbid_rate', type=float, default=1,
+parser.add_argument('--morbid_rate', type=float, default=1.0,
                     help="Morbidity rate for farmer-based surveillance")
+parser.add_argument('--farmer_prop', type=float, default=1.0,
+                    help="Proportion of farmers that initiate surveillance for farmer-based surveillance")
 parser.add_argument('--test_date_int', type=int, default=90,
                     help="Number of days between testing at farms with specific network metrics")
 parser.add_argument('--test_contact_net', nargs="*", type=str, default=['d'],
@@ -74,12 +81,15 @@ def main():
     # Sensitivity analysis parameters
     phi_factor = args.phi_factor
     psi_factor = args.psi_factor
+    eta_factor = args.eta_factor
     idx_case_factor = args.idx_case_factor
+    prop_tour_reduce = args.prop_tour_reduce
 
     # Surveillance specific parameters
     surveillance_type = args.surveillance
     mortality_rate_inc = args.mort_rate_inc
     morbid_rate = args.morbid_rate
+    farmer_prop = args.farmer_prop
     testing_date_interval = args.test_date_int
     testing_contact_network_list = args.test_contact_net
     test_top_thresh = args.test_top_thresh
@@ -99,33 +109,47 @@ def main():
     # Change phi and psi for sensitivity analysis (default factor is 1 so will remain the same)
     ds.PHI = ds.PHI * phi_factor
     ds.PSI = ds.PSI * psi_factor
+    ds.ETA = ds.ETA * eta_factor
+
+    str_start_date = str(start_date.year) + "_" + str(start_date.month) + "_" + str(start_date.day)
 
     # Define the output_dir based on the parameters
     if surveillance_type == 'network':
-        output_dir = "../output/" + str(disease) + "/" + str(start_date.year) + "_" + str(start_date.month) + "_" + str(
-            start_date.day) + "/" + surveillance_type + "_surv" + "/" + "nets_" + str(test_top_thresh) + "_" + \
-                     str(testing_date_interval) + "_" + "_".join(testing_contact_network_list) + "/"
+        output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + surveillance_type + "_surv" + "/" + \
+                     "nets_" + str(test_top_thresh) + "_" + str(testing_date_interval) + "_" + \
+                     "_".join(testing_contact_network_list) + "/"
     elif surveillance_type == 'farmer':
         if mortality_rate_inc < 1:
-            output_dir = "../output/" + str(disease) + "/" + str(start_date.year) + "_" + str(start_date.month) + \
-                         "_" + str(start_date.day) + "/" + surveillance_type + "_surv" + "/" + "mort_rate_inc_" + str(mortality_rate_inc) + "/"
+            output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + surveillance_type + "_surv" + "/" + \
+                         "farmer_prop_" + str(farmer_prop) + "_mort_rate_inc_" + str(mortality_rate_inc) + "/"
         else:
-            output_dir = "../output/" + str(disease) + "/" + str(start_date.year) + "_" + str(start_date.month) + \
-                         "_" + str(start_date.day) + "/" + surveillance_type + "_surv" + "/" + "morbid_rate_" + \
-                         str(morbid_rate) + "/"
+            output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + surveillance_type + "_surv" + "/" + \
+                         "farmer_prop_" + str(farmer_prop) + "_morbid_rate_" + str(morbid_rate) + "/"
     elif surveillance_type == 'slaughter':
-        output_dir = "../output/" + str(disease) + "/" + str(start_date.year) + "_" + str(start_date.month) + "_" + str(
-            start_date.day) + "/" + surveillance_type + "_surv" + "/" + "num_sh_" + str(num_sh) + "/"
+        output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + surveillance_type + "_surv" + "/" + \
+                     "num_sh_" + str(num_sh) + "/"
     elif surveillance_type == 'none':
-        if idx_case_factor != 3:
-            output_dir = "../output/" + str(disease) + "/" + str(start_date.year) + "_" + str(
-                start_date.month) + "_" + str(
-                start_date.day) + "/" + "no_surv" + "/" + "phi_factor_" + str(phi_factor) + "_psi_factor_" + str(
-                psi_factor) + "_idx_case_factor_" + str(idx_case_factor) + "/"
-        else:
-            output_dir = "../output/" + str(disease) + "/" + \
-                         str(start_date.year) + "_" + str(start_date.month) + "_" + str(start_date.day) + "/" + \
-                         "no_surv" + "/" + "phi_factor_" + str(phi_factor) + "_psi_factor_" + str(psi_factor) + "/"
+        output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + "no_surv" + "/" + "no_surv" + "/"
+    elif surveillance_type == 'sensitivity':
+        if idx_case_factor != 2:
+            output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + surveillance_type + "/" + \
+                         "idx_case_factor_" + str(idx_case_factor) + "/"
+        elif prop_tour_reduce != 0.0:
+            if(prop_tour_reduce < 0.001):
+                output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + surveillance_type + "/" + \
+                         "limit_tour_contacts_" + '{:f}'.format(prop_tour_reduce) + "/"
+            else:
+                output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + surveillance_type + "/" + \
+                             "limit_tour_contacts_" + str(prop_tour_reduce) + "/"
+        elif phi_factor != 1.0:
+            output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + surveillance_type + "/" + \
+                         "phi_factor_" + str(phi_factor) + "/"
+        elif psi_factor != 1.0:
+            output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + surveillance_type + "/" + \
+                         "psi_factor_" + str(psi_factor) + "/"
+        elif eta_factor != 1.0:
+            output_dir = "../output/" + str(disease) + "/" + str_start_date + "/" + surveillance_type + "/" + \
+                         "eta_factor_" + str(eta_factor) + "/"
 
     # Set seed for the current run
     random.seed(seed)
@@ -161,6 +185,15 @@ def main():
     direct_trans_df = pd.read_pickle("../data/direct_trans_" + str(start_date.year) + ".pkl")
     other_trans_df = pd.read_pickle("../data/other_trans_" + str(start_date.year) + ".pkl")
 
+    # To limit the tour data by a certain proportion
+    if prop_tour_reduce != 0.0:
+        other_trans_df = fun.limit_tour_contacts(prop_tour_reduce,
+                                                 other_trans_df)
+        #increase parameter values of tour so that changes could be visible
+        ds.PHI = ds.PHI * 200.0
+        ds.PSI = ds.PSI * 200.0
+        ds.ETA = ds.ETA * 200.0
+
     # Generate index farm based on different factors of each disease
     index_farm_idx, index_farm_tvd = fun.set_index_case(farm_list,
                                                         curr_run,
@@ -170,6 +203,7 @@ def main():
     # Update sim data with index case information
     sim_data = fun.update_sim_data(index_farm_idx,
                                    sim_data)
+
     # For PRRS, for all farms with sows, move the susceptibles to new compartment SUS for different transmission params
     if disease == 'PRRS':
         sim_data = fun.update_sim_data_sows_PRRS(farm_list,
@@ -187,13 +221,16 @@ def main():
     if surveillance_type == 'slaughter':
 
         # Create list of slaughter houses that are randomly selected for surveillance
-        slaughter_indices = surv_s.create_slaughterhouse_list(farm_list, curr_run, output_dir, num_sh)
+        slaughter_indices = surv_s.create_slaughterhouse_list(farm_dict,
+                                                              num_sh)
 
         direct_trans_df = surv_s.find_transports_to_slaughter(slaughter_indices, direct_trans_df,
                                                               start_date.year, end_date.year)
 
         while curr_date <= end_date:
             print(f"curr_date: {curr_date}", flush=True)
+            # To test randome number draws to make sure they are consistent
+            #fun.testing()
 
             # Spread infection among pigs in the farm
             sim_data, infected_farm_list, infected_pig_list = ts.update_spread_within_farms(sim_data,
@@ -221,10 +258,15 @@ def main():
     elif surveillance_type == 'farmer':
         # Farm tracking for surveillance delay of farm-based morbidity and mortality alerts
         farmer_alert_arr = np.full((len(sim_data), 1), False)  # to track which farms have initiated testing
+        farmer_no_init = np.full((len(sim_data), 1), False)  # to track which farms have been randomly selected to not initiate testing
         farmer_alert_dict = {}  # to store farmer idx for farmer_surveilance delay
 
         while curr_date <= end_date:
             print(f"curr_date: {curr_date}", flush=True)
+            #print("farm_idx of concern", sim_data[6901])
+
+            # To test randome number draws to make sure they are consistent
+            #fun.testing()
 
             if curr_date in farmer_alert_dict:
                 sim_data, inspected_farm_list = surv_f.deploy_farmer_surv(farmer_alert_dict,
@@ -234,7 +276,7 @@ def main():
                                                                           control)
             # Spread infection among pigs in the farm
             sim_data, infected_farm_list, infected_pig_list, \
-            farmer_alert_dict, farmer_alert_arr = \
+            farmer_alert_dict, farmer_alert_arr, farmer_no_init  = \
                 surv_f.update_spread_within_farms_surv(
                     sim_data,
                     infected_farm_list,
@@ -242,8 +284,10 @@ def main():
                     infected_pig_list,
                     mortality_rate_inc,
                     morbid_rate,
+                    farmer_prop,
                     farmer_alert_dict,
                     farmer_alert_arr,
+                    farmer_no_init,
                     ds)
 
             # Spread infection between farms
@@ -303,7 +347,7 @@ def main():
             curr_date += datetime.timedelta(days=1)
             day_count = day_count + 1
 
-    elif surveillance_type == 'none':
+    elif surveillance_type == 'none' or surveillance_type == 'sensitivity':
         while curr_date <= end_date:
             print(f"curr_date: {curr_date}", flush=True)
 

@@ -4,7 +4,10 @@ Simple network simulation model
 """
 import datetime
 # from io import StringIO
+import math
+import random
 from random import choices
+from numpy.random import default_rng
 import numpy as np
 import pandas
 import pandas as pd
@@ -158,3 +161,30 @@ def create_tour_arr(
 
     # Return dataframe
     return tour_arr, direct_transport_df
+
+
+def limit_tour_contacts(prop_tour_reduce,
+                        other_trans_df):
+
+    # select the list of tour_ids
+    list_tours = other_trans_df.tour_id.unique()
+
+    # calculate number to remove
+    n_draw = math.ceil(len(list_tours) * prop_tour_reduce)
+
+    # random draw of proportion of tours to remove
+    arr_tours_drop = default_rng().choice(list_tours, size=n_draw, replace=False)
+
+    # remove the tours that were selected
+    lim_tour_contacts = other_trans_df.drop(other_trans_df[other_trans_df['tour_id'].isin(arr_tours_drop)].index)
+
+    return lim_tour_contacts
+
+
+def testing():
+    #print(seed)
+    random_idx = np.random.randint(0,100)
+    print(random_idx)
+    list = random.choices(range(101), k=10)
+    print(list)
+    return
