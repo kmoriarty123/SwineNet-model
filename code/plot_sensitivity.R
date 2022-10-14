@@ -15,6 +15,9 @@
 library(ggpubr)
 library(dplyr)
 library(tidyr)
+library(ggh4x)
+
+setwd("Z:/Datasets/NetworkMaterial/SwineNet-model/output/")
 
 load('total_compart_data_take_off.RData')
 
@@ -36,9 +39,13 @@ total_compart_data_take_off_sum <- total_compart_data_take_off %>%
   group_by(disease, start_date, surv_pgrm, surv_type, days_since_intro) %>% 
   summarize(med_farm_count = median(farm_count),
             quantile_0.95 = quantile(farm_count, 0.95),
+            quantile_0.75 = quantile(farm_count, 0.75),
+            quantile_0.25 = quantile(farm_count, 0.25),
             max_farm_count = max(farm_count),
             med_pig_count = median(all_inf),
             quantile_0.95_pig = quantile(all_inf, 0.95),
+            quantile_0.75_pig = quantile(all_inf, 0.75),
+            quantile_0.25_pig = quantile(all_inf, 0.25),
             max_pig_count = max(all_inf))  %>% 
   ungroup() %>% 
   pivot_longer(med_farm_count:max_pig_count) %>% 
@@ -102,22 +109,51 @@ total_compart_data_take_off_sum <- total_compart_data_take_off %>%
 #   facet_grid2(factor(disease, 
 #                      levels = c('PRRS','ASF','APP'))~surv_type_desc, scales = "free_y")
 
+## Create baseline Factor Increase of 1 ##
+baseline_eta <- total_compart_data_take_off_sum %>% 
+  filter(name %in% c('med_farm_count'),
+         surv_type_desc %in% c('none')) %>% 
+  mutate(surv_type_level = "1",
+         surv_type_desc = 'eta',
+         surv_pgrm = 'eta_factor_1.0',
+         surv_type = 'sensitivity') 
+
+baseline_phi <- total_compart_data_take_off_sum %>% 
+  filter(name %in% c('med_farm_count'),
+         surv_type_desc %in% c('none')) %>% 
+  mutate(surv_type_level = "1",
+         surv_type_desc = 'phi',
+         surv_pgrm = 'phi_factor_1.0',
+         surv_type = 'sensitivity') 
+
+baseline_psi <- total_compart_data_take_off_sum %>% 
+  filter(name %in% c('med_farm_count'),
+         surv_type_desc %in% c('none')) %>% 
+  mutate(surv_type_level = "1",
+         surv_type_desc = 'psi',
+         surv_pgrm = 'psi_factor_1.0',
+         surv_type = 'sensitivity') 
+
+# join all of the tables together now
+total_params_with_baseline <- rbind(total_compart_data_take_off_sum, 
+                                    baseline_eta, 
+                                    baseline_phi, 
+                                    baseline_psi)
+
 #b2 <- total_compart_data_take_off_sum %>%
-total_compart_data_take_off_sum %>% 
+total_params_with_baseline %>% 
   filter(name %in% c('med_farm_count'),
          surv_type_desc %in% c('phi', 'eta', 'psi')) %>% 
   ggplot(., aes(x=days_since_intro, 
                 y=value, 
-                color=factor(surv_type_level, levels = c("50","100","200")))) +
+                color=factor(surv_type_level, levels = c("1","50","100","200")))) +
   geom_point() +
   theme_bw() +
   scale_colour_manual(values=cbPalette) +
-  #scale_colour_manual(values=cbPalette) +
   labs(#title="Median and Maximum Infected Farm Count for No Surveillance", 
     y='Cumulative Number of Infected Farms',
     x="Days Since Introduction",
     color="Factor Increase") +
-  #facet_wrap(~disease+surv_type_desc, scales = "free_y")
   facet_grid2(factor(disease, 
                      levels = c('PRRS','ASF','APP'))~factor(surv_type_desc, 
                              levels = c('phi','psi','eta')), 
@@ -129,10 +165,18 @@ total_compart_data_take_off_sum %>%
 #           labels=c('A', 'B'),
 #           common.legend = T,
 #           legend='right')
+#Values for article
+t1 <- total_params_with_baseline %>% 
+  filter(name %in% c('med_farm_count'),
+         surv_type_desc %in% c('phi', 'eta', 'psi'),
+         surv_type_level %in% c('1', '200'),
+         days_since_intro == 244)
 
 #a1 <- total_compart_data_take_off_sum %>%
 total_compart_data_take_off_sum %>% 
-  filter(name == 'med_farm_count',
+  filter(name %in% c('med_farm_count',
+                     'quantile_0.75',
+                     'quantile_0.25'),
          surv_type_desc %in% c('tour'),
          surv_type_level != '0.5') %>% 
   ggplot(., aes(x=days_since_intro, 
@@ -147,6 +191,7 @@ total_compart_data_take_off_sum %>%
     color="Proportion \n of Tours \n Removed") +
   facet_wrap(~factor(disease, 
                      levels = c('PRRS','ASF','APP')), scales = "free_y")
+table(total_compart_data_take_off_sum$name)
 
 # values for article
 rtmp <- total_compart_data_take_off_sum %>% 

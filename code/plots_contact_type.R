@@ -44,7 +44,8 @@ rate_factor_level = c("All Tours (+++)",
                       "-10% Tours (+++)",
                       "Baseline")
 rate_factor_level_direct = c("+ Direct","++ Direct", "+++ Direct")
-rate_factor_level_indirect = c("+ Indirect","++ Indirect", "+++ Indirect")
+#rate_factor_level_indirect = c("+ Indirect","++ Indirect", "+++ Indirect")
+rate_factor_level_indirect = c("X4 Indirect", "X10 Indirect", "X50 Indirect","X100 Indirect", "+++ Indirect")
 rate_factor_level_ext = c("+ Exterior","++ Exterior", "+++ Exterior")
 
 tour_factor_level = c("All Tours (+++)", 
@@ -59,8 +60,10 @@ contact_prop_take_off <- contact_prop_take_off %>%
                                          surv_pgrm == 'phi_factor_50.0' ~ "+ Direct",
                                          surv_pgrm == 'phi_factor_100.0' ~ "++ Direct",
                                          surv_pgrm == 'phi_factor_200.0' ~ "+++ Direct",
-                                         surv_pgrm == 'psi_factor_50.0' ~ "+ Indirect",
-                                         surv_pgrm == 'psi_factor_100.0' ~ "++ Indirect",
+                                         surv_pgrm == 'psi_factor_4.0' ~ "X4 Indirect",
+                                         surv_pgrm == 'psi_factor_10.0' ~ "X10 Indirect",
+                                         surv_pgrm == 'psi_factor_50.0' ~ "X50 Indirect",
+                                         surv_pgrm == 'psi_factor_100.0' ~ "X100 Indirect",
                                          surv_pgrm == 'psi_factor_200.0' ~ "+++ Indirect",
                                          surv_pgrm == 'eta_factor_50.0' ~ "+ Exterior",
                                          surv_pgrm == 'eta_factor_100.0' ~ "++ Exterior",
@@ -100,7 +103,7 @@ t1 <- contact_prop_take_off %>%
   facet_grid2(factor(disease, 
                      levels = c('PRRS','ASF','APP'))~factor(surv_pgrm_name_desc, levels=rate_factor_level))
 
-# Factor of 50
+# Factor of phi
 #t1 <- contact_prop_take_off_test %>%
 t2 <- contact_prop_take_off %>% 
   filter(surv_pgrm %in% c('phi_factor_50.0',
@@ -117,10 +120,12 @@ t2 <- contact_prop_take_off %>%
   facet_grid2(factor(disease, 
                      levels = c('PRRS','ASF','APP'))~factor(surv_pgrm_name_desc, levels=rate_factor_level_direct))
 
-# Factor of 100
+# Factor of psi
 #t1 <- contact_prop_take_off_test %>%
 t3 <- contact_prop_take_off %>% 
-  filter(surv_pgrm %in% c('psi_factor_50.0',
+  filter(surv_pgrm %in% c('psi_factor_4.0',
+                          'psi_factor_10.0',
+                          'psi_factor_50.0',
                           'psi_factor_100.0')) %>% 
                           #'psi_factor_200.0')) %>% 
   ggplot(., aes(x=day, y=prop_cum_inf, 
@@ -132,9 +137,10 @@ t3 <- contact_prop_take_off %>%
        y="Proportion") +
   scale_fill_manual(values=cbPalette2) +
   facet_grid2(factor(disease, 
-                     levels = c('PRRS','ASF','APP'))~factor(surv_pgrm_name_desc, levels=rate_factor_level_indirect))
+                      levels = c('APP'))~factor(surv_pgrm_name_desc, levels=rate_factor_level_indirect))
+  #                   levels = c('PRRS','ASF','APP'))~factor(surv_pgrm_name_desc, levels=rate_factor_level_indirect))
 
-# Factor of 200
+# Factor of eta
 #t1 <- contact_prop_take_off_test %>%
 t4 <- contact_prop_take_off %>% 
   filter(surv_pgrm %in% c('eta_factor_50.0',
@@ -178,6 +184,15 @@ tmp3 <- contact_prop_take_off_lim %>%
          contact_name == 'Indirect Truck Share'
   ) %>% 
   select(disease, surv_pgrm, day, contact_name, prop_cum_inf)
+
+tmp3 <- contact_prop_take_off %>% 
+  filter(day==244,
+    #contact_name == 'Within Farm',
+    #surv_pgrm_name_desc == 'Baseline') %>% 
+    disease == 'APP',
+    #surv_pgrm == 'psi_factor_100.0',
+    contact_name == 'Indirect Truck Share'
+  )
 
 #### Plotting Proportion of spread per route of transmission WITHOUT WITHIN FARM from those that "took off"
 load("2019-05-01contact_prop_lim_take_off.RData") #contact_prop_take_off_lim

@@ -338,6 +338,7 @@ def main():
             if curr_date in test_dates_list:
                 print("TESTING DAY!: ", curr_date)
                 sim_data, inspected_farm_list = surv_n.network_surv_test_farm(testing_farm_idx,
+                                                                              testing_contact_network_list,
                                                                               sim_data,
                                                                               inspected_farm_list,
                                                                               curr_date,

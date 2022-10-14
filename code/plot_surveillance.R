@@ -73,6 +73,7 @@ first_detect_all_take_off <- first_detect_all_take_off %>%
                                     surv_pgrm == 'num_sh_9' ~ "9 Slaughterhouses",
                                     surv_pgrm == 'num_sh_36' ~ "36 Slaughterhouses",
                                     surv_pgrm == 'num_sh_18' ~ "18 Slaughterhouses",
+                                    surv_pgrm == 'nets_250_90_r' ~ "Randomly Selected Network",
                                     surv_pgrm == 'nets_250_90_t' ~ "Exterior Truck Fomites",
                                     surv_pgrm == 'nets_250_90_p' ~ "Direct Truck Share",
                                     surv_pgrm == 'nets_250_90_i' ~ "Indirect Truck Share",
@@ -131,6 +132,7 @@ total_compart_data_take_off_last_day_cases <- total_compart_data_take_off_last_d
                                     surv_pgrm == 'num_sh_9' ~ "9 Slaughterhouses",
                                     surv_pgrm == 'num_sh_36' ~ "36 Slaughterhouses",
                                     surv_pgrm == 'num_sh_18' ~ "18 Slaughterhouses",
+                                    surv_pgrm == 'nets_250_90_r' ~ "Randomly Selected Network",
                                     surv_pgrm == 'nets_250_90_t' ~ "Exterior Truck Fomites",
                                     surv_pgrm == 'nets_250_90_p' ~ "Direct Truck Share",
                                     surv_pgrm == 'nets_250_90_i' ~ "Indirect Truck Share",
@@ -160,6 +162,7 @@ surv_pgrm_levels = c("None",
                      "9 Slaughterhouses",
                      "18 Slaughterhouses",
                      "36 Slaughterhouses",
+                     "Randomly Selected Network",
                      "Direct Transfer",
                      "Direct Truck Share",
                      "Indirect Truck Share",
@@ -184,6 +187,30 @@ surv_pgrm_levels = c("None",
                      "100% Farmers: 30% Morbidity",
                      "100% Farmers: 40% Morbidity"
                      )
+
+surv_pgrm_levels_lim = c("None",
+                     "9 Slaughterhouses",
+                     "18 Slaughterhouses",
+                     "36 Slaughterhouses",
+                     "Randomly Selected Network",
+                     "Direct Transfer",
+                     "Direct Truck Share",
+                     "Indirect Truck Share",
+                     "Exterior Truck Fomites",
+                     "Geographic",
+                     "60% Farmers: 5% Mortality Rate Increase",
+                     "60% Farmers: 15% Mortality Rate Increase",
+                     "60% Farmers: 20% Morbidity",
+                     "60% Farmers: 40% Morbidity",
+                     "90% Farmers: 5% Mortality Rate Increase",
+                     "90% Farmers: 15% Mortality Rate Increase",
+                     "90% Farmers: 20% Morbidity",
+                     "90% Farmers: 40% Morbidity",
+                     "100% Farmers: 5% Mortality Rate Increase",
+                     "100% Farmers: 15% Mortality Rate Increase",
+                     "100% Farmers: 20% Morbidity",
+                     "100% Farmers: 40% Morbidity"
+)
 
 surv_desc_levels = c('None',
                      #'Sensitivity',
@@ -290,10 +317,13 @@ surv_type_levels =  c('no_surv',
 # distribution of first date of detection for all runs
 first_detect_all_take_off %>% 
   filter(start_date == '2019-05-01',
-         surv_type != 'sensitivity') %>% 
+         surv_type != 'sensitivity',
+         surv_pgrm_desc %in% surv_pgrm_levels_lim
+         ) %>% 
   ggplot(., aes(x=days_since_intro, 
                 y=factor(surv_pgrm_desc, 
-                         levels = surv_pgrm_levels))) +
+                         #levels = surv_pgrm_levels), # removed some farmer-based surv 
+                         levels = surv_pgrm_levels_lim))) +
   geom_boxplot(outlier.alpha = 0, color="black") +
   geom_point(size = 3, alpha = 0.15, aes(color=factor(surv_type, 
                                                       levels = surv_type_levels))) +
@@ -326,7 +356,7 @@ tmp <- first_detect_all_take_off %>%
   group_by(disease, surv_pgrm) %>% 
   summarize(med_date = median(date),
             med_day = median(days_since_intro))
-   
+ 
 
 ############ Proportion of positive cases detected - only take off ############
 
@@ -334,10 +364,12 @@ tmp <- first_detect_all_take_off %>%
 
 total_compart_data_take_off_last_day_cases %>% 
   filter(surv_type != 'sensitivity',
-         start_date == '2019-05-01') %>% 
+         start_date == '2019-05-01',
+         surv_pgrm_desc %in% surv_pgrm_levels_lim) %>% 
 ggplot(., 
        aes(x=factor(surv_pgrm_desc, 
-                    levels = surv_pgrm_levels), 
+                    #levels = surv_pgrm_levels), # removed some farmer-based surv 
+                    levels = surv_pgrm_levels_lim), 
            y=prop_detected)) +
   geom_boxplot(outlier.alpha = 0, color="black") +
   geom_point(size = 3, alpha = 0.15, aes(color=factor(surv_type, 

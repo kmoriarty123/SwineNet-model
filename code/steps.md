@@ -94,3 +94,23 @@ limit tours
 - compart_phi_psi_eta_cum_sum.png
 - compart_tours_removed_cum_sum.png
 - compart_idx_weight_cum_sum.png
+
+example of obtaining values for paper:
+load('total_compart_data_take_off_sum.RData')
+total_compart_data_take_off_sum %>% 
+filter(name %in% c('med_pig_count','med_farm_count'), disease=='ASF', 
+days_since_intro == 55,
+surv_type =='slaughter_surv')
+
+5. Comparison of slaughterhouse selection (random vs largest)
+
+code: compare_slaughterhouse_choice.R
+input: 
+load('first_detect_all_take_off.RData') # largest slaughterhouses
+load("total_compart_data_take_off_random_slaugher.RData") # randomly drawn slaughterhouses
+output: random_largest_sl_choice.png
+
+6. statistical testing of seasonality and tour reductions
+stats_test_seasonality_tour_reduce.R
+input:
+output: cum_prob_seasonality.png

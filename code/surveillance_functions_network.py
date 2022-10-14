@@ -42,42 +42,50 @@ def pick_test_dates(test_interval_days: datetime,
 def create_test_farm_list(farm_dict,
                           test_contact_type,
                           test_top_thresh):
-    # Read test_list from file
-    with open('../data/top_deg_list_all_' + str(test_top_thresh) + '.csv') as f:
-        # skip header line
-        header = next(f).strip()
-        # read in farm list
-        text = "\n".join(line for line in f)
-        test_farm_df = pd.read_csv(StringIO(text))
 
-    # Add the column headings
-    test_farm_df.columns = header.split(',')
-    test_farm_df_lim = test_farm_df.copy()
-    test_farm_df = test_farm_df[test_farm_df['contact_net_type'].isin(test_contact_type)]
-    test_farm_df_lim['tvd_idx'] = test_farm_df['tvd_nr'].map(farm_dict)
+    # if holdings should be picked randomly
+    if test_contact_type[0] == 'r':
+        test_farm_list = choices(list(farm_dict.values()), k=test_top_thresh)
+    else:
+        # Read test_list from file
+        with open('../data/top_deg_list_all_' + str(test_top_thresh) + '.csv') as f:
+            # skip header line
+            header = next(f).strip()
+            # read in farm list
+            text = "\n".join(line for line in f)
+            test_farm_df = pd.read_csv(StringIO(text))
 
-    # Check for missing tvd_nrs and drop (some tvds are not active every year)
-    test_farm_df_lim = test_farm_df_lim.loc[test_farm_df_lim['tvd_idx'].notnull()]
+        # Add the column headings
+        test_farm_df.columns = header.split(',')
+        test_farm_df_lim = test_farm_df.copy()
+        test_farm_df = test_farm_df[test_farm_df['contact_net_type'].isin(test_contact_type)]
+        test_farm_df_lim['tvd_idx'] = test_farm_df['tvd_nr'].map(farm_dict)
 
-    # convert tvd_idx to integer
-    test_farm_df_lim.loc[:, 'tvd_idx'] = test_farm_df_lim.loc[:, 'tvd_idx'].values.astype(int)
+        # Check for missing tvd_nrs and drop (some tvds are not active every year)
+        test_farm_df_lim = test_farm_df_lim.loc[test_farm_df_lim['tvd_idx'].notnull()]
 
-    # Return the farm_idx array
-    test_farm_list = test_farm_df_lim.values.tolist()
+        # convert tvd_idx to integer
+        test_farm_df_lim.loc[:, 'tvd_idx'] = test_farm_df_lim.loc[:, 'tvd_idx'].values.astype(int)
+
+        # Return the farm_idx array
+        test_farm_list = test_farm_df_lim['tvd_idx'].values.tolist()
 
     return test_farm_list
 
 
 def network_surv_test_farm(test_farm_idx,
+                           net_type,
                            sim_data,
                            inspect_farm_list,
                            curr_date,
                            control):
+
     # Loop through tested farms list
     for idx, farm_idx in enumerate(test_farm_idx):
         # farm_idx[0]=tvd, farm_idx[1]=contact type, farm_idx[2] = idx
-        farm_ind = farm_idx[gs.NET_IDX]
-        tmp_inf = sim_data[farm_ind, gs.INF]
+        #farm_ind = farm_idx[gs.NET_IDX]
+        farm_ind = farm_idx
+        tmp_inf = sim_data[farm_ind, gs.INF] + sim_data[farm_ind, gs.ASY]
 
         if tmp_inf > 0:
             # print('farm pigs detected: ', farm_idx, str(tmp_inf))
@@ -89,7 +97,7 @@ def network_surv_test_farm(test_farm_idx,
                                                 sim_data[farm_ind, gs.ASY])
 
             if num_detected > 0:
-                inspect_farm_list.append((farm_ind, curr_date, farm_idx[gs.NET_CNTCT], num_detected))
+                inspect_farm_list.append((farm_ind, curr_date, net_type[0], num_detected))
 
                 # Move detected pigs from infected to detected
                 sim_data[farm_ind, gs.INF] = sim_data[farm_ind, gs.INF] - num_detected

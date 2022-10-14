@@ -11,8 +11,10 @@ library(dplyr)
 setwd("Z:/Datasets/NetworkMaterial/SwineNet-model/output/")
 # load data
 list_disease = c("APP", "ASF", "PRRS")
+list_disease = c("APP")
 start_date_lim = '2019-05-01' 
 list_start_date = c('2014_1_1','2014_5_1','2019_1_1','2019_5_1')
+list_start_date = c('2019_5_1')
 # for storing results
 total_contact_data_sum = data.frame()
 total_contact_data = data.frame()
@@ -192,7 +194,7 @@ total_rows_join <- total_rows_join %>%
 # Check the table
 tmp <- total_contact_data_2019_5 %>%
   filter(disease == 'APP', 
-         surv_pgrm == 'eta_factor_50.0',
+         surv_pgrm == 'psi_factor_4.0',
          contact_type == 't')
 
 tmp <- total_rows %>%
