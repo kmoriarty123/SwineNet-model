@@ -27,7 +27,7 @@ column_names_tour = ['source_idx', 'dest_idx', 'event_date', 'n_pigs', 'contact_
 
 # Indices for tour with surveillance
 # INSPCT: indicator to show that the transport will be inspected at the slaughterhouse
-INSPCT, N_DIS = 4, 5 #TODO - confirm that theses are the correct indices!
+INSPCT, N_DIS = 4, 5
 column_names_direct_inspect = ['source_idx', 'dest_idx', 'event_date', 'n_pigs', 'inspect_ind']
 
 # Indices for geo

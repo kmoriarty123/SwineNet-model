@@ -14,7 +14,6 @@ import pandas as pd
 
 import global_setup as gs
 
-
 # def create_farm_dict(
 #        start_year: int,
 #        end_year: int
@@ -39,7 +38,6 @@ import global_setup as gs
 #
 #    # Return Dictionary
 #    return farm_dict, farm_list
-
 
 def set_index_case(
         farm_list: list,
