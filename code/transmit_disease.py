@@ -8,10 +8,6 @@ import pandas as pd
 
 import global_setup as gs
 
-
-# import cli as ds
-# import ASF_setup as ds
-
 # To import global disease variables later
 # def global_imports(module_name, abbr):
 #    globals()[abbr] = __import__(module_name)
@@ -25,6 +21,7 @@ def update_spread_within_farms(
         curr_date: datetime,
         infected_pig_list: list,
         ds) -> np.array:
+    """ Updates spread within the farms"""
     for idx in np.arange(0, sim_data.shape[0]):
 
         # Store information of all entries with at least 1 infected, 1 exposed, or 1 deceased pig
@@ -125,6 +122,8 @@ def update_spread_between_farms(tour_arr: np.array,
                                 geo_data: np.array,
                                 infected_pig_list: list,
                                 ds) -> np.array:
+    """ Updates spread between the farms"""
+
     # grab the infected farm indices
     infected_farm_idx = np.where((sim_data[:, gs.INF] > 0) | (sim_data[:, gs.ASY] > 0) |
                                  (sim_data[:, gs.EX] > 0) | (sim_data[:, gs.EXS] > 0))[0]
@@ -317,14 +316,13 @@ def update_spread_between_farms(tour_arr: np.array,
     return sim_data, infected_pig_list
 
 
-# Surveillance function that applies to multiple surveillance programs
-
 def inspect_herd_farm(num_inf_pigs: int,
                       num_sus_pigs: int,
                       num_ex_pigs: int,
                       num_asym_pigs: int):
+    """ Inspect herd for disease """
+
     # Test all pigs on farm
-    # TODO: include likelihood of farmer choosing to test pigs
     # TODO: include specificity and sensitivity of testing
     pigs_detected = num_inf_pigs  # initial assumption: all pigs on the farm are detected
 

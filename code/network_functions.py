@@ -3,41 +3,15 @@
 Simple network simulation model
 """
 import datetime
-# from io import StringIO
 import math
 import random
 from random import choices
 from numpy.random import default_rng
 import numpy as np
 import pandas
-import pandas as pd
 
 import global_setup as gs
 
-# def create_farm_dict(
-#        start_year: int,
-#        end_year: int
-# ):
-#    """ Initiates the farm matrix.
-#
-#    Only active farms between start_date and end_date.
-#    """
-#    # Don't need start_date: datetime, end_date: datetime parameters since we take all farms (geographic)
-#    # From file, import farms from agis_data and create dict
-#    farm_df = pd.read_csv('../data/agis_data_lim.csv', encoding='latin-1')
-#    farm_df = farm_df[(farm_df['year'] <= end_year) & (farm_df['year'] >= start_year)]
-#
-#    # replace all n_pigs with zeros
-#    farm_df['tot_pigs'] = farm_df['tot_pigs'].fillna(0)
-#
-#    farm_list = farm_df.values.tolist()
-#
-#    farm_dict = {}
-#    for idx, farm_info in enumerate(farm_list):
-#        farm_dict[farm_info[gs.TVD]] = idx
-#
-#    # Return Dictionary
-#    return farm_dict, farm_list
 
 def set_index_case(
         farm_list: list,
@@ -163,6 +137,9 @@ def create_tour_arr(
 
 def limit_tour_contacts(prop_tour_reduce,
                         other_trans_df):
+    """ Reduces the tour contacts by the parameter prop_tour_reduce
+    This tests if there is an impact on the disesase trans when tours are removed.
+    """
 
     # select the list of tour_ids
     list_tours = other_trans_df.tour_id.unique()
@@ -180,8 +157,8 @@ def limit_tour_contacts(prop_tour_reduce,
 
 
 def testing():
-    #print(seed)
-    random_idx = np.random.randint(0,100)
+    # print(seed)
+    random_idx = np.random.randint(0, 100)
     print(random_idx)
     list = random.choices(range(101), k=10)
     print(list)

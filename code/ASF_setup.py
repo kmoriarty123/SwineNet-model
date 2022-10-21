@@ -11,8 +11,6 @@ Establishes ASF transmission variables.
 # RHO: Proportion of the ones moving from exposed to infected that are asymptomatic
 # DEL: Disease causing death rate
 # GAM: Rate at which asym recover (and develop immunity)
-#BET, SIG, RHO, DEL, GAM = 1.75, 0.144, 0, 0.143, 0
-#KAP = 0
 
 # Between Farm Spread
 # Other contact transmission rates

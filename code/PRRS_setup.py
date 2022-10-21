@@ -11,10 +11,10 @@ Establishes PRRS transmission variables.
 # RHO: Proportion of the ones moving from exposed to infected that are asymptomatic
 # DEL: Disease causing death rate
 # GAM: Rate at which asym recover (and develop immunity)
-#BET, KAP, SIG, RHO, DEL, THE, GAM = 0.054, 0.25, 1, 1, 0.018, 0.2, 0.018
-# For PRRS, there is a distinction between RHO on farms with sows and without sows. H
+
+# For PRRS, there is a distinction between RHO on farms with sows and without sows.
 # This is the proportion for farms with sows:
-#RHO_S = 0
+# RHO_S = 0
 
 # Between Farm Spread
 # Other contact transmission rates
@@ -22,11 +22,8 @@ Establishes PRRS transmission variables.
 # PSI: INDIRECT_TRUCK_TRANS_RATE
 # ETA: EXT_TRUCK_TRANS_RATE
 # OME: GEO_TRANS_RATE
-#ETA, OME, PSI, PHI =0.05, 0.005, 0.001, 0.005
-
 
 class Parameters:
-
     BET = 0.054
     KAP = 0.25
     SIG = 1

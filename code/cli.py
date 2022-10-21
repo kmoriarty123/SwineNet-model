@@ -220,7 +220,7 @@ def main():
     # Add surveillance programs if passed
     if surveillance_type == 'slaughter':
 
-        # Create list of slaughter houses that are randomly selected for surveillance
+        # Create list of slaughter houses that are selected for surveillance
         slaughter_indices = surv_s.create_slaughterhouse_list(farm_dict,
                                                               num_sh)
 
@@ -229,8 +229,8 @@ def main():
 
         while curr_date <= end_date:
             print(f"curr_date: {curr_date}", flush=True)
-            # To test randome number draws to make sure they are consistent
-            #fun.testing()
+            # To test random number draws to make sure they are consistent
+            # fun.testing()
 
             # Spread infection among pigs in the farm
             sim_data, infected_farm_list, infected_pig_list = ts.update_spread_within_farms(sim_data,

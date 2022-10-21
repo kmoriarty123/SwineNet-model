@@ -2,23 +2,15 @@
 
 Simple network simulation model
 """
-# import cli as ds
 import random
 import datetime
 from random import choices
 import numpy as np
 import pandas as pd
-# from numpy import random
 
 import global_setup as gs
 import transmit_disease as ts
 
-
-# import ASF_setup as ds
-
-# To import global disease variables later
-# def global_imports(module_name, abbr):
-#    globals()[abbr] = __import__(module_name)
 
 def create_slaughterhouse_list_old(
         farm_list: list,
@@ -72,8 +64,6 @@ def create_slaughterhouse_list(
 
     for tvd in slaughter_tvd_list:
         if tvd in farm_dict:
-            # print('found a match: ' + str(tvd))#+ ', ' + str(farm_dict[tvd]))
-            # print('here')
             slaughter_all_indices.append(farm_dict[tvd])
 
     return slaughter_all_indices
@@ -94,7 +84,6 @@ def find_transports_to_slaughter(slaughter_indices_list: list,
     inspect_end = datetime.date.fromisoformat(str(start_year) + "-" + gs.inspection_end_date)
 
     # Limit transports to only those within the inspection timeframe
-    # TODO: add the issue of end_date in a distinct year
     slaughter_transports_lim = slaughter_transports_df[
         (slaughter_transports_df['event_date'] >= inspect_start) &
         (slaughter_transports_df['event_date'] <= inspect_end)]
