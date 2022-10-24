@@ -1,6 +1,10 @@
 """ SwineNet Network Simulation Model.
 
 Preprocess data
+Requires:
+'../data/agis_data_lim.csv'
+'../data/tour_network.csv'
+'../data/geo_network.csv'
 
 """
 import pickle

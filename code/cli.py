@@ -4,6 +4,19 @@ Interprets the arguments from the commandline,
 calls the functions relating to spread of disease on farms and between farms dependent on parameter
 values.
 
+Basic testing parameter use case:
+--start_date=2019-01-01 --end_date=2019-08-31 --curr_run=1 --seed=1
+
+Requires:
+'../data/agis_data_lim.csv'
+'../data/tour_network.csv'
+'../data/geo_network.csv'
+With Data Structureed:
+agis_data_lim: "year" "tvd_nr" "gde_nr" "gde_name" "is_pig_stall" "holding_cat" "tot_pigs" "sows_boar_ind"
+    "idx_weight_PRRS" "idx_weight_ASF" "idx_weight_APP" "idx_weight_PRRS_low" "idx_weight_ASF_low"
+    "idx_weight_APP_low"  "idx_weight_PRRS_med" "idx_weight_ASF_med"  "idx_weight_APP_med"
+tour_network:"tvd_source" "tvd_dest" "event_date" "n_pigs" "contact_type" "tour_id"
+geo_network: "tvd_source" "tvd_dest" "dist" "contact_type"
 """
 
 import argparse

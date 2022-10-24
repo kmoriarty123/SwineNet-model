@@ -50,15 +50,11 @@ def create_slaughterhouse_list(
     :return: Index of slaughterhouses that were chosen for surveillance
     """
     if num_slaughter == 9:
-        slaughter_tvd_list = [1856446, 2030180, 1836608, 1285666, 1620900, 1407112, 1285673, 2136684, 1856460]
+        slaughter_tvd_list = pd.read_csv('../data/slaughter_surv_9.csv', header=None).values.tolist()[0]
     elif num_slaughter == 18:
-        slaughter_tvd_list = [1856446, 2030180, 1836608, 1285666, 1620900, 1407112, 1285673, 2136684, 1856460,
-                              1621235, 1851380, 1621259, 1621174, 1176186, 1221688, 1620870, 1621037, 1411461]
+        slaughter_tvd_list = pd.read_csv('../data/slaughter_surv_18.csv', header=None).values.tolist()[0]
     elif num_slaughter == 36:
-        slaughter_tvd_list = [1856446, 2030180, 1836608, 1285666, 1620900, 1407112, 1285673, 2136684, 1856460,
-                              1621235, 1851380, 1621259, 1621174, 1176186, 1221688, 1620870, 1621037, 1411461,
-                              1944167, 1620948, 1462968, 1621204, 1620535, 1298277, 1621150, 1856477, 1942378,
-                              1836776, 1855173, 1833232, 2195681, 1863598, 1621082, 1176018, 1016895, 1911268]
+        slaughter_tvd_list = pd.read_csv('../data/slaughter_surv_36.csv', header=None).values.tolist()[0]
 
     slaughter_all_indices = []
 
