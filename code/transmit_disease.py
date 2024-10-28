@@ -162,12 +162,18 @@ def update_spread_between_farms(tour_arr: np.array,
             # Calculate the number of infected pigs sent on the tour
             tran_inf_pigs = min(sim_data[farm_idx, gs.INF],
                                 np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
-                                                  sim_data[farm_idx, gs.INF] / N))
+                                                  sim_data[farm_idx, gs.INF] / N),
+                                # 26.09.2024 Added the below line of text to ensure that not more pigs are sent for
+                                # transport than should be sent
+                                inf_farm_tour[gs.T_NPIGS]-tran_exp_pigs-tran_exp_pigs_sow)
 
             # Calculate the number of asymptomatic infected pigs sent on the tour
             tran_inf_pigs_asym = min(sim_data[farm_idx, gs.ASY],
                                      np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
-                                                       sim_data[farm_idx, gs.ASY] / N))
+                                                       sim_data[farm_idx, gs.ASY] / N),
+                                     # 26.09.2024 Added the below line of text to ensure that not more pigs are sent
+                                     # for transport than should be sent
+                                     inf_farm_tour[gs.T_NPIGS]-tran_exp_pigs-tran_exp_pigs_sow-tran_inf_pigs)
 
             if tran_exp_pigs > 0:
                 infected_pig_list.append([curr_date, 'd', tran_exp_pigs])

@@ -57,5 +57,5 @@ inspection_end_date = '08-30'
 # NUM_SH = 9 # now passed as a parameter
 MAX_FARMS_PER_SH = 134
 MAX_PIGS_PER_FARM = 6
-INIT_FARM_MORT = 0.026
+INIT_FARM_MORT = 0.025
 FARM_SURV_DAY_DELAY = 10
