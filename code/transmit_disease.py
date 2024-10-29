@@ -149,31 +149,30 @@ def update_spread_between_farms(tour_arr: np.array,
 
             # Get index of destination farm
             dest_tvd_id = inf_farm_tour[gs.DEST]
+
             # Calculate the number of exposed (non sow farm) pigs sent on the tour
             tran_exp_pigs = min(sim_data[farm_idx, gs.EX],
+                                inf_farm_tour[gs.T_NPIGS],
                                 np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
                                                   sim_data[farm_idx, gs.EX] / N))
 
             # Calculate the number of exposed (sow farm) pigs sent on the tour
             tran_exp_pigs_sow = min(sim_data[farm_idx, gs.EXS],
+                                    (inf_farm_tour[gs.T_NPIGS] - tran_exp_pigs),
                                     np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
                                                       sim_data[farm_idx, gs.EXS] / N))
 
             # Calculate the number of infected pigs sent on the tour
             tran_inf_pigs = min(sim_data[farm_idx, gs.INF],
+                                (inf_farm_tour[gs.T_NPIGS] - tran_exp_pigs - tran_exp_pigs_sow),
                                 np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
-                                                  sim_data[farm_idx, gs.INF] / N),
-                                # 26.09.2024 Added the below line of text to ensure that not more pigs are sent for
-                                # transport than should be sent
-                                inf_farm_tour[gs.T_NPIGS]-tran_exp_pigs-tran_exp_pigs_sow)
+                                                  sim_data[farm_idx, gs.INF] / N))
 
             # Calculate the number of asymptomatic infected pigs sent on the tour
             tran_inf_pigs_asym = min(sim_data[farm_idx, gs.ASY],
+                                     (inf_farm_tour[gs.T_NPIGS] - tran_exp_pigs - tran_exp_pigs_sow - tran_inf_pigs),
                                      np.random.poisson(gs.TAU * inf_farm_tour[gs.T_NPIGS] *
-                                                       sim_data[farm_idx, gs.ASY] / N),
-                                     # 26.09.2024 Added the below line of text to ensure that not more pigs are sent
-                                     # for transport than should be sent
-                                     inf_farm_tour[gs.T_NPIGS]-tran_exp_pigs-tran_exp_pigs_sow-tran_inf_pigs)
+                                                       sim_data[farm_idx, gs.ASY] / N))
 
             if tran_exp_pigs > 0:
                 infected_pig_list.append([curr_date, 'd', tran_exp_pigs])
