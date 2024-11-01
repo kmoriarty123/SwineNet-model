@@ -65,7 +65,7 @@ def create_test_farm_list(farm_dict,
         test_farm_df_lim = test_farm_df_lim.loc[test_farm_df_lim['tvd_idx'].notnull()]
 
         # convert tvd_idx to integer
-        test_farm_df_lim.loc[:, 'tvd_idx'] = test_farm_df_lim.loc[:, 'tvd_idx'].values.astype(int)
+        test_farm_df_lim['tvd_idx'] = test_farm_df_lim['tvd_idx'].astype(int)
 
         # Return the farm_idx array
         test_farm_list = test_farm_df_lim['tvd_idx'].values.tolist()
@@ -100,7 +100,8 @@ def network_surv_test_farm(test_farm_idx,
                 inspect_farm_list.append((farm_ind, curr_date, net_type[0], num_detected))
 
                 # Move detected pigs from infected to detected
-                sim_data[farm_ind, gs.INF] = sim_data[farm_ind, gs.INF] - num_detected
+                sim_data[farm_ind, gs.INF] = 0
+                sim_data[farm_ind, gs.ASY] = 0
                 sim_data[farm_ind, gs.ISO] = sim_data[farm_ind, gs.ISO] + num_detected
 
                 if control == "quarantine":

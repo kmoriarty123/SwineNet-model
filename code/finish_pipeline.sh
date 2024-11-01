@@ -1,8 +1,7 @@
 #!/bin/bash
 
 prj_dir=/storage/homefs/km21a901/NetworkMaterial/SwineNet-model
-date=2019_7_1
-output_dir=$prj_dir/output/$date
+output_dir=$prj_dir/output
 
 echo "Concat files..."
 

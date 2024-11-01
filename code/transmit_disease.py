@@ -23,7 +23,6 @@ def update_spread_within_farms(
         ds) -> np.array:
     """ Updates spread within the farms"""
     for idx in np.arange(0, sim_data.shape[0]):
-
         # Store information of all entries with at least 1 infected, 1 exposed, or 1 deceased pig
         if sim_data[idx, gs.INF] > 0 or sim_data[idx, gs.ASY] > 0 or \
                 sim_data[idx, gs.EX] > 0 or sim_data[idx, gs.EXS] > 0 or \
@@ -41,6 +40,7 @@ def update_spread_within_farms(
             # Select all entries with at least 1 infectious (symp or asymp) or exposed pig
             if sim_data[idx, gs.EX] > 0 or sim_data[idx, gs.EXS] > 0 or \
                     sim_data[idx, gs.INF] > 0 or sim_data[idx, gs.ASY] > 0:
+
                 # Call function to run spread within the farm
                 new_su, new_sus, new_exp, new_exps, new_inf, new_asy, new_rem, new_rec, e_to_ai = run_farm_spread(
                     sim_data[idx, gs.SU],
@@ -75,7 +75,6 @@ def run_farm_spread(sus, sus_s, exp, exp_s, inf, asy, rem, rec, ds):
 
     # Total pig population on the farm, N.
     N = S0 + SS0 + E0 + ES0 + I0 + A0 + RC0
-
     # Calculate expected values and probabilities
     # Note difference from RHO and THETA
     exp_S_to_E = gs.TAU * ds.BET * S0 * (I0 + ds.KAP * A0) / N
@@ -100,7 +99,6 @@ def run_farm_spread(sus, sus_s, exp, exp_s, inf, asy, rem, rec, ds):
     ES_to_I = ES_to_IA - ES_to_A
     I_to_RM = np.random.binomial(I_to_R, ds.THE)
     I_to_RC = I_to_R - I_to_RM
-
     S = S0 - min(S_to_E, S0)  # ensure S is never negative
     SS = SS0 - min(SS_to_ES, SS0)  # ensure SS is never negative
     E = E0 + min(S_to_E, S0) - E_to_I - E_to_A
@@ -143,6 +141,7 @@ def update_spread_between_farms(tour_arr: np.array,
 
         # Check to see if the infected farm has a tour
         if tour_arr[farm_idx, day_count] == 1:
+
             #print("found a tranport!")
             # Grab record of infected farm transport
             inf_farm_tour = curr_tours[np.where(curr_tours[:, gs.SRC] == farm_idx)[0]][0]
