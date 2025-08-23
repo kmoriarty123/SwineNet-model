@@ -17,6 +17,7 @@ ENV/
 data/*
 !data/README.md
 output/*
+!output/README.md
 
 # Old code
 old_code/*
