@@ -1,96 +1,344 @@
-# SwineNet Simple Network Simulation Model
-#### last update: 07.02.2022
+# SwineNet: Network Simulation Model for Swine Diseases
 
-### Data
-- Farms (agis_data_lim.csv) 
-  - tvd_nr,year,holding_cat,gde_nr,gde_name,is_pig_stall,tot_pigs,other_animals,which_animals
-- Tour Network (tour_network.csv)
-  - tvd_source,tvd_dest,event_date,n_pigs,contact_type
-- Geographic Network
-  - tvd_source, tvd_dest, distance (km), contact_type
+This README explains how to set up inputs, run the command‑line interface, and understand the outputs of the SwineNet simulation. The `cli.py` script is the entry point; it wires together disease parameters, surveillance programs, within‑farm dynamics, and between‑farm spread.
 
-### Constants
-Evidence for Choice of transmission rates (see google drive spreadsheet for more detailed values)
-- BET = contact_rate x transmission_rate 
-  - contact_rate: all pigs interact with all other pigs once a day 
-  - here it is between 0.95 and 1 https://www.frontiersin.org/articles/10.3389/fvets.2019.00248/full
-  - transmission_rate would be 0.45 to 3.63 per day: https://pubmed.ncbi.nlm.nih.gov/23664069/#:~:text=Different%20criteria%20were%20used%20for,0.45%20to%203.63%20per%20day. 
-  - here it is between 0.6 and 1.5 https://www.frontiersin.org/articles/10.3389/fvets.2019.00248/full
-  - here it is between https://bvajournals.onlinelibrary.wiley.com/doi/pdf/10.1136/vr.103593
-- SIG: time from exposed to acute disease is 4-9 days after exposure. 
-  - I set to 6.25 days. https://www.nature.com/articles/s41598-020-62736-y
-- DEL: After disease, death usually in 10 days.  
-  - https://www.efsa.europa.eu/en/topics/topic/african-swine-fever#:~:text=Sudden%20death%20may%20occur.,not%20show%20typical%20clinical%20signs.
-- Others: 
-  - Francesco's article: https://www.authorea.com/doi/full/10.22541/au.164271398.86217172/v1 (table 3)
-  - danish model: (supplemental tables show parameter values) https://www.frontiersin.org/articles/10.3389/fvets.2018.00049/full#supplementary-material
+---
 
-### Parameters
-- start_date
-- end_date 
-- curr_run 
-- stochastic 
-- not_stochastic
-- seed
-  
-### Set up the environment
-1. create_farm_dict (tvd_id (key) farm_idx (value))
-2. set_index_case (see more below of index case)
-3. create_sim_data (2-D array  size: num_farms x 4) 
-    - columns: num susceptible pigs (begins at farm yearly average), num exposed, num_infected, num_deceased
-    - rows: farms positioned at farm_idx
-4. create tour array and dataframes
-    - tour array (2-D array, shape: num_farms x num days from start to end of simulation)
-    - direct transport dataframe (replaced tvd_ids for source and dest farms with farm_indices)
-    - other contact transport dataframe (replaced tvd_ids for source and dest farms with farm_indices)
-5. create geographic array
-    - geo array (2-D array, shape: num_farms x 3, columns: source_idx, dest_idx, distance (km))
+## Quick start
 
-### Simulate Spread
-- For each day from start_date to end_date (inclusive)
-  a. update_spread_within_farms
-  b. update_spread_between_farms
+```bash
+# 1) Create & activate a virtual environment (recommended)
+python3 -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
-### Example Single Run Execution
-- py cli_single_tvd.py --start_date=2014-01-01 --end_date=2014-01-10 --curr_run=2 --stochastic --index_case_tvd_id=[tvd_id] --seed=2
-- py cli.py --start_date=2014-01-01 --end_date=2014-01-03 --curr_run=1 --stochastic --seed=1
+# 2) Install Python dependencies
+pip install -r requirements.txt  # or: pip install numpy pandas
 
-### Index Case 
-- wild boar
-  - list of higher prevalance cantons: 
-    - AG Walterswil, Würenlos 
-    - BE Lindenrain, Oberbipp-Nord 
-    - BL Mühlematt (both directions), Pratteln-Süd, Sonnenberg (both directions)
-    - FR Rose de la Broye 
-    - GR Campagnola (both directions)
-    - LU Chilchbüel, Inseli, Knutwil-Nord, Knutwil-Süd, Neuenkirch (both directions)
-    - SG Rheintal Ost, Rheintal West, Thurau Nord, Wildhus Nord 
-    - SH Berg, Moos 
-    - SO Eggberg, Gunzgen-Nord, Teufengraben 
-    - TG Hexentobel Nord 
-    - TI Bellinzona Nord, Bellinzona Sud, Bodio, Coldrerio (both directions), Giornico, Lavorgo (both
-directions), Moleno Nord, Moleno Sud, Motto, Muzzano (both directions), San Gottardo-Sud,
-Sasso, Segoma (both directions)
-    - VD Bavois, Crans-près-Céligny, St-Prex 
-    - VS Dents de Morcles 
-    - ZH Baltenswil-Nord, Büsisee, Chrüzstrass, Forrenberg Nord, Kemptthal, Stegen, Weinland (both
-directions)
-    source: https://www.biorxiv.org/content/10.1101/2021.05.17.444420v1.full.pdf
-- biosecurity
+# 3) Ensure required data files exist under ../data relative to cli.py (see “Data inputs”)
 
-### Surveillance and Control Measures (see google drive spreadsheet for values)
-1. Surveillance
-   - testing at slaughterhouse (consider sensitivity and specificity of tests)
-     - to do: (currently - for some diseases, slaughterhouse testing is every few months)
-     - select all slaughterhouses and random draw from them (slaughterhouses are currently chosen at random)
-     - current pigs
-   - surveillance at farms with many out-going transport (set different thresholds)
-   - surveillance at farms with higher mortality
-     - average mortality for Germany (https://porcinehealthmanagement.biomedcentral.com/articles/10.1186/s40813-021-00225-y)
-   - reduce threshold for farm mandatory testing (currently based on certain % increase of deceased pigs or 2 (?) unexplained abortions)
-2. Control
-  - increase biosecurity (explore which farms would make a difference)
-  - build fencing
-  - stop transports
-  - cull herd
+# 4) Run a baseline (no-surveillance) simulation for PRRS within 2019
+python cli.py \
+  --disease PRRS \
+  --start_date 2019-01-01 \
+  --end_date   2019-08-31 \
+  --curr_run   1 \
+  --seed       42 \
+  --surveillance none
+```
+
+> **Note**: The model expects the **start and end dates to be in the same calendar year** (all input files are loaded by `start_date.year`).
+
+---
+
+## Requirements
+
+- **Python** ≥ 3.8 (3.10+ recommended)
+- **Packages**: `numpy`, `pandas`
+- Shell to run CLI (macOS/Linux Terminal, Windows PowerShell or Git Bash)
+
+Optional, but useful:
+- `pip-tools` or `uv` for managing dependencies
+- `jupyter` for exploring outputs
+
+A minimal `requirements.txt` could be:
+
+```
+numpy
+pandas
+```
+
+---
+
+## Repository layout (expected)
+
+```
+repo_root/
+  ├─ code/                     # where cli.py and other modules live (adjust as needed)
+  │   ├─ cli.py
+  │   ├─ transmit_disease.py
+  │   ├─ global_setup.py
+  │   ├─ surveillance_functions_slaughter.py
+  │   ├─ surveillance_functions_farmer.py
+  │   ├─ surveillance_functions_network.py
+  │   ├─ network_functions.py
+  │   ├─ PRRS_setup.py | APP_setup.py | ASF_setup.py
+  │   └─ ...
+  ├─ data/                     # **required** preprocessed inputs (see below)
+  └─ output/                   # generated by the runs (created automatically)
+```
+
+Paths in the code are **relative to the location of `cli.py`** (e.g., `../data`, `../output`). If you keep a different structure, adjust working directory accordingly (run from the folder containing `cli.py`) or modify paths in the code.
+
+---
+
+## Data inputs (required)
+
+All inputs are preprocessed and loaded **by the start year**. Ensure these files exist under `../data` (relative to `cli.py`) **for the year you run** (e.g., `2019`).
+
+- `farm_dict_<YEAR>.pkl` — Preprocessed farm dictionary
+- `farm_list_<YEAR>.pkl` — Preprocessed list of farms
+- `sim_data_<YEAR>.npy` — Initial state matrix (per‑farm compartments; see “Model state”)
+- `geo_arr_<YEAR>.npy` — Geographic network array
+- `direct_trans_<YEAR>.pkl` — Direct transports dataframe
+- `other_trans_<YEAR>.pkl` — Indirect/other contacts dataframe (e.g., truck‑sharing, fomites)
+
+> If you run across years (e.g., Dec 2019 → Jan 2020), the code still loads inputs by `start_date.year`. Keep runs within one year unless you extend the loader logic.
+
+---
+
+## Disease configuration
+
+Choose one of the built‑in diseases via `--disease`:
+
+- `PRRS`
+- `APP`
+- `ASF`
+
+Each disease has a `*_setup.py` file exposing parameters such as transmission rates and transition probabilities (e.g., `PHI`, `PSI`, `ETA`, `KAP`, `SIG`, `DEL`, `GAM`, `RHO`, etc.).
+
+### Sensitivity knobs
+
+You can scale some parameters on the command line (applied multiplicatively to the disease defaults):
+
+- `--phi_factor` (default `1.0`) — Modulates truck‑sharing infection intensity
+- `--psi_factor` (default `1.0`) — Modulates unclean‑truck (fomite) infection intensity
+- `--eta_factor` (default `1.0`) — Modulates exterior‑truck/environmental contamination intensity
+
+Use `--surveillance sensitivity` to organize outputs by the factor you vary (see “Output directory structure”).
+
+---
+
+## Surveillance programs
+
+Select with `--surveillance`:
+
+- `none` — No surveillance (baseline).
+- `slaughter` — Test a sample of slaughterhouses; additional arg: `--num_sh` (default `9`).
+- `farmer` — Alerts from on‑farm morbidity/mortality signals; key args:
+  - `--mort_rate_inc` (increase in mortality rate triggering alert; values < 1 use a different output subfolder)
+  - `--morbid_rate` (morbidity trigger if `mort_rate_inc >= 1`)
+  - `--farmer_prop` (proportion of farmers that will actually initiate testing; default `1.0`)
+- `network` — Periodic testing of farms with extreme network metrics; key args:
+  - `--test_date_int` (days between rounds; default `90`)
+  - `--test_contact_net` (one or more contact types; e.g., `--test_contact_net d t i`)
+  - `--test_top_thresh` (how many top farms by the chosen metric; default `250`)
+- `sensitivity` — Organizes outputs when probing factors like `phi_factor`, `psi_factor`, `eta_factor`, `idx_case_factor`, `prop_tour_reduce`.
+
+### Contact types
+
+- `d` — direct movement (tours/shipments)
+- `t` — truck sharing (direct mixing)
+- `i` — unclean truck (fomites)
+- `e` — exterior/environmental truck contamination
+- `g` — geographic proximity/local spread (not a transport contact, but appears in outputs)
+
+> For network‑surveillance selection, supply one or more of `d`, `t`, `i`, `e` (e.g., `--test_contact_net d t i`).
+
+---
+
+## Control measures
+
+- `--control none` (default)
+- `--control quarantine` (quarantine logic is applied by surveillance routines when detections occur)
+
+---
+
+## Command‑line arguments (complete)
+
+Required for every run (no defaults):
+
+- `--start_date YYYY-MM-DD`
+- `--end_date   YYYY-MM-DD`
+- `--curr_run   INT` (run index written to outputs)
+- `--seed       INT` (controls RNG for reproducibility)
+
+Common/optional:
+
+- `--disease {PRRS,APP,ASF}` (default `PRRS`)
+- `--surveillance {none,slaughter,farmer,network,sensitivity}` (default `none`)
+- `--control {none,quarantine}` (default `none`)
+- `--phi_factor FLOAT` (default `1.0`)
+- `--psi_factor FLOAT` (default `1.0`)
+- `--eta_factor FLOAT` (default `1.0`)
+- `--idx_case_factor {1,2,3}` (index‑case seeding rule; default `2`)
+- `--prop_tour_reduce FLOAT` (0–1 reduction of tour contacts; default `0.0`). If non‑zero, tour contacts are thinned and transport‑related parameters are internally boosted so effects are visible in outputs.
+- `--num_sh INT` (slaughter surveillance; default `9`)
+- `--mort_rate_inc FLOAT` (farmer surveillance)
+- `--morbid_rate FLOAT` (farmer surveillance)
+- `--farmer_prop FLOAT` (0–1; farmer surveillance)
+- `--test_date_int INT` (days; network surveillance)
+- `--test_contact_net STR...` (list of contact types; network surveillance)
+- `--test_top_thresh INT` (network surveillance)
+
+---
+
+## Example runs
+
+### 1) Baseline (no surveillance)
+```bash
+python cli.py \
+  --disease PRRS \
+  --start_date 2019-01-01 \
+  --end_date   2019-08-31 \
+  --curr_run   1 \
+  --seed       1 \
+  --surveillance none
+```
+
+### 2) Slaughterhouse surveillance with 12 sites
+```bash
+python cli.py \
+  --disease ASF \
+  --start_date 2019-01-01 \
+  --end_date   2019-08-31 \
+  --curr_run   2 \
+  --seed       7 \
+  --surveillance slaughter \
+  --num_sh 12
+```
+
+### 3) Farmer‑based surveillance (50% of farmers initiate testing; mortality trigger)
+```bash
+python cli.py \
+  --disease APP \
+  --start_date 2019-01-01 \
+  --end_date   2019-08-31 \
+  --curr_run   3 \
+  --seed       22 \
+  --surveillance farmer \
+  --farmer_prop 0.5 \
+  --mort_rate_inc 0.02 \
+  --control quarantine
+```
+
+### 4) Network‑based surveillance every 60 days on truck‑sharing and fomites
+```bash
+python cli.py \
+  --disease PRRS \
+  --start_date 2019-01-01 \
+  --end_date   2019-08-31 \
+  --curr_run   4 \
+  --seed       99 \
+  --surveillance network \
+  --test_date_int 60 \
+  --test_contact_net t i \
+  --test_top_thresh 200
+```
+
+### 5) Sensitivity: reduce tour contacts 5%
+```bash
+python cli.py \
+  --disease PRRS \
+  --start_date 2019-01-01 \
+  --end_date   2019-08-31 \
+  --curr_run   5 \
+  --seed       5 \
+  --surveillance sensitivity \
+  --prop_tour_reduce 0.05
+```
+
+> Tip: To batch multiple runs with different seeds:
+> ```bash
+> for s in 1 2 3 4 5; do
+>   python cli.py --disease PRRS --start_date 2019-01-01 --end_date 2019-08-31 \
+>     --curr_run "$s" --seed "$s" --surveillance none
+> done
+> ```
+
+---
+
+## Output directory structure & files
+
+Outputs are written under `../output/<DISEASE>/<YYYY_MM_DD>/<SURVEILLANCE_SUBDIR>/` with subfolder names that encode key parameters. Examples:
+
+- No surveillance: `../output/PRRS/2019_1_1/no_surv/no_surv/`
+- Slaughter surveillance: `../output/ASF/2019_1_1/slaughter_surv/num_sh_9/`
+- Farmer surveillance: `../output/APP/2019_1_1/farmer_surv/farmer_prop_0.5_mort_rate_inc_0.02/`
+- Network surveillance: `../output/PRRS/2019_1_1/network_surv/nets_250_90_d_t_i/`
+- Sensitivity (by factor): e.g., `.../sensitivity/phi_factor_2.0/`, `.../limit_tour_contacts_0.05/`, etc.
+
+### Always written
+
+- `results_by_compart_<RUN>.csv` — daily totals by compartment across all farms. Columns:
+  - `date`, `farm_idx` (count of farms with any activity that day),
+  - `exposed`, `infected`, `asymptomatic`, `removed`, `recovered`, `isolated`, `quarantined_s`, `quarantined_e`, `quarantined_a`,
+  - `run_num`.
+
+- `results_by_contact_grp_<RUN>.csv` — daily counts of newly infected/exposed pigs by contact type. Columns:
+  - `date`, `contact_type` (`f`, `d`, `t`, `i`, `e`, `g`), `num_inf_pigs`, `run_num`.
+
+### Additionally written by surveillance mode
+
+- Slaughter: `results_inspected_trans_<RUN>.csv` with columns
+  - `source_idx`, `dest_idx`, `event_date`, `n_pigs`, `inspect_ind`, `n_discover`, `run_num`.
+
+- Farmer: `results_inspected_farms_<RUN>.csv` with columns
+  - `farm_idx`, `curr_date`, `n_detect`, `run_num`.
+
+- Network: `results_inspected_farms_network_<RUN>.csv` with columns
+  - `farm_idx`, `curr_date`, `surv_contact_net_type`, `n_detect`, `run_num`.
+
+> File formats are written via NumPy with simple CSV formatting. If you prefer richer CSV (with headers), you can adapt the save logic to use `DataFrame.to_csv`.
+
+---
+
+## Model state & dynamics (high‑level)
+
+### Compartments per farm
+
+Each farm tracks these compartments (selected indices shown):
+
+- `SU` — susceptible (non‑sow)
+- `SUS` — susceptible sows
+- `EX` — exposed (non‑sow)
+- `EXS` — exposed sows
+- `INF` — infectious (symptomatic)
+- `ASY` — infectious (asymptomatic)
+- `REM` — deceased (disease‑induced)
+- `REC` — recovered/immune
+- `ISO` — isolated
+- `QUA_S`, `QUA_E`, `QUA_A` — quarantined susceptible/exposed/asymptomatic
+
+### Within‑farm spread
+
+- Discrete‑time (τ‑leap, `TAU = 1` day) transitions from S→E using transmission `BET`, infectiousness multiplier for asymptomatic `KAP`, incubation `SIG`, recovery `GAM`/`DEL`, symptomatic split `RHO`/`RHO_S`, and mortality `THE`.
+- Daily events are drawn from Poisson/Binomial distributions; counts are bounded so compartments never go negative.
+
+### Between‑farm spread
+
+- **Direct transports**: when an infected farm ships pigs, a fraction of exposed/infected pigs are transported to the destination.
+- **Indirect contacts**
+  - `t` (truck sharing): mixing with other shipments → exposure scaled by `PHI`.
+  - `i` (unclean truck): fomites on interior surfaces → exposure scaled by `PSI`.
+  - `e` (exterior contamination): local environmental contamination at destination → exposure scaled by `ETA`.
+- **Geographic spread**: local spread to neighbors based on geographic links and `OME`.
+
+---
+
+## 📂 Module summaries
+
+- **`global_setup.py`** — Holds constants (compartment indices, dates, limits) used throughout the model.
+- **`transmit_disease.py`** — Implements within‑farm transitions and inspection logic (e.g., `inspect_herd_farm`).
+- **`network_functions.py`** — Handles initial seeding of index cases, special PRRS sow handling, and direct transport tour arrays. Also implements tour‑contact reduction (`prop_tour_reduce`).
+- **`surveillance_functions_slaughter.py`** — Selects slaughterhouses for surveillance, tags transports for inspection, and updates disease spread accounting for slaughter detection/quarantine.
+- **`surveillance_functions_network.py`** — Schedules periodic network‑based farm testing (based on degree/centrality lists or random sampling) and applies farm‑level inspections + quarantine.
+- **`surveillance_functions_farmer.py`** — Triggers inspections based on farmer‑reported morbidity/mortality thresholds.
+- **`<DISEASE>_setup.py` (`PRRS_setup.py`, `ASF_setup.py`, `APP_setup.py`)** — Define the parameter sets for each disease (transmission rates, recovery, mortality, between‑farm multipliers).
+
+---
+
+## Reproducibility
+
+- Use `--seed` to seed both Python’s `random` and NumPy RNGs. Keep `--curr_run` equal to the run id you want recorded in outputs. For batch runs, vary both.
+
+---
+
+## Troubleshooting
+
+- **Missing module errors**: Ensure `surveillance_functions_*.py`, `network_functions.py`, and the disease `*_setup.py` files are present in the same directory as `cli.py` (or on `PYTHONPATH`).
+- **File not found**: Confirm all six data files for the chosen year exist under `../data` relative to `cli.py`. The start & end dates must be in that year.
+- **Cross‑year periods**: Not currently supported by the default loaders; split runs by year or extend the loaders.
+- **Outputs not written**: The output directory is created on the fly. Make sure you have write permissions where `../output` should be created.
+- **Large runs**: Consider chunking by region/year or running with fewer days to smoke‑test parameterization.
+
+---
 
