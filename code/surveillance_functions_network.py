@@ -101,7 +101,7 @@ def network_surv_test_farm(test_farm_idx,
 
                 # Move detected pigs from infected to detected
                 sim_data[farm_ind, gs.INF] = 0
-                sim_data[farm_ind, gs.ASY] = 0
+                sim_data[farm_ind, gs.ASF] = 0
                 sim_data[farm_ind, gs.ISO] = sim_data[farm_ind, gs.ISO] + num_detected
 
                 if control == "quarantine":
