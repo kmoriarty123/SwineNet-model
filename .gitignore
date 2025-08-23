@@ -1,7 +1,43 @@
-.idea/*
-__pycache__/*
+# IDEs
+.idea/
+.vscode/
+
+# Python cache / compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# Data and outputs
 data/*
-code/__pycache__/*
+!data/README.md
 output/*
+
+# Old code
 old_code/*
+
+# R scripts in code dir
 code/*R
+
+# Logs / backups
+*.log
+*.out
+*.err
+*.bak
+
+# Config files
+*.ini
+*.env
+*.toml
+*.yaml
+*.yml
+*.cfg
+
+# OS files
+.DS_Store
+Thumbs.db
